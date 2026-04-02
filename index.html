@@ -3,216 +3,210 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HR Intelligence Hub | Simplified</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Operations Intelligence Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
-        .stat-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); transition: all 0.2s ease; }
-        .stat-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        /* Clean status indicators */
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-        .status-y { background-color: #10b981; } /* Emerald 500 */
-        .status-n { background-color: #ef4444; } /* Red 500 */
-        /* Table styling */
-        tr:hover td { background-color: #f1f5f9; }
+        .glass-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .tab-btn { padding: 10px 20px; font-weight: 600; color: #64748b; border-bottom: 2px solid transparent; transition: 0.3s; }
+        .tab-btn.active { color: #4f46e5; border-bottom-color: #4f46e5; background: #f5f3ff; }
+        .status-badge { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .bg-done { background: #dcfce7; color: #166534; }
+        .bg-wip { background: #fef9c3; color: #854d0e; }
+        .bg-pending { background: #fee2e2; color: #991b1b; }
     </style>
 </head>
-<body class="p-4 md:p-10">
+<body class="p-4 md:p-8">
 
-    <header class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center mb-10 pb-6 border-b border-slate-200">
+    <header class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-6">
         <div>
-            <h1 class="text-3xl font-bold tracking-tight text-slate-950">HR Intelligence Hub</h1>
-            <p class="text-slate-600 text-sm mt-1">Real-time Dashboard (via Google Bridge)</p>
+            <h1 class="text-2xl font-bold text-slate-900">Operations Intelligence Hub</h1>
+            <p class="text-slate-500 text-sm">Real-time Analysis for CCR & Bin Checks</p>
         </div>
-        <div id="syncStatus" class="mt-4 md:mt-0 px-4 py-2 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span> Initializing...
+        <div id="syncStatus" class="mt-4 md:mt-0 text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-500 uppercase tracking-widest">
+            Connecting to Quip...
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto space-y-8">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
-            <div class="stat-card p-6 border-t-4 border-t-indigo-500">
-                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wide">Total Staff</p>
-                <h2 id="totalEmp" class="text-5xl font-extrabold mt-3 text-indigo-950">--</h2>
+    <div class="max-w-7xl mx-auto mb-6 flex gap-4 border-b border-slate-200">
+        <button onclick="switchTab('stats')" id="tab-stats" class="tab-btn active">Overview & Charts</button>
+        <button onclick="switchTab('table')" id="tab-table" class="tab-btn">Data Explorer</button>
+    </div>
+
+    <main id="stats-section" class="max-w-7xl mx-auto space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="glass-card p-6 border-l-4 border-indigo-500">
+                <p class="text-xs font-bold text-slate-500 uppercase">Total Tickets</p>
+                <h2 id="totalTickets" class="text-3xl font-bold mt-1 text-slate-900">--</h2>
             </div>
-            <div class="stat-card p-6 border-t-4 border-t-emerald-500">
-                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wide">Full Compliance</p>
-                <h2 id="fullComp" class="text-5xl font-extrabold mt-3 text-emerald-600">--</h2>
+            <div class="glass-card p-6 border-l-4 border-emerald-500">
+                <p class="text-xs font-bold text-slate-500 uppercase">Reversal Rate</p>
+                <h2 id="reversalRate" class="text-3xl font-bold mt-1 text-emerald-600">--</h2>
             </div>
-            <div class="stat-card p-6 border-t-4 border-t-amber-500">
-                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wide">Missing Docs</p>
-                <h2 id="missingDocs" class="text-5xl font-extrabold mt-3 text-amber-600">--</h2>
+            <div class="glass-card p-6 border-l-4 border-amber-500">
+                <p class="text-xs font-bold text-slate-500 uppercase">Active WIP</p>
+                <h2 id="activeWip" class="text-3xl font-bold mt-1 text-amber-600">--</h2>
             </div>
-            <div class="stat-card p-6 border-t-4 border-t-rose-500">
-                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wide">Oct Hires</p>
-                <h2 id="octHires" class="text-5xl font-extrabold mt-3 text-rose-600">--</h2>
+            <div class="glass-card p-6 border-l-4 border-rose-500">
+                <p class="text-xs font-bold text-slate-500 uppercase">Defects Found</p>
+                <h2 id="defectCount" class="text-3xl font-bold mt-1 text-rose-600">--</h2>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="stat-card p-6 lg:col-span-2 min-h-[380px]">
-                <h3 class="font-semibold text-slate-800 mb-6 flex items-center gap-2"><svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>Hiring Trend (Per Month)</h3>
-                <div class="h-[300px]"><canvas id="hiringChart"></canvas></div>
-            </div>
-            <div class="stat-card p-6 min-h-[380px]">
-                <h3 class="font-semibold text-slate-800 mb-6 flex items-center gap-2"><svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>Documents Status</h3>
-                <div class="h-[300px]"><canvas id="docsChart"></canvas></div>
-            </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-card p-6"><canvas id="investigatorChart" height="250"></canvas></div>
+            <div class="glass-card p-6"><canvas id="defectChart" height="250"></canvas></div>
         </div>
+    </main>
 
-        <div class="stat-card overflow-hidden">
-            <div class="p-6 border-b border-slate-100 flex flex-wrap justify-between items-center gap-4 background-white">
-                <h3 class="font-semibold text-slate-900">Staff Compliance Register</h3>
-                <div class="relative w-full md:w-72">
-                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    <input type="text" id="hrSearch" onkeyup="renderTable()" placeholder="Search employee name..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-sm outline-none focus:border-indigo-400 focus:bg-white focus:ring-1 focus:ring-indigo-100 transition">
-                </div>
+    <main id="table-section" class="max-w-7xl mx-auto hidden">
+        <div class="glass-card overflow-hidden">
+            <div class="p-4 border-b bg-slate-50 flex justify-between items-center">
+                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search ASIN or Investigator..." class="p-2 border rounded-lg text-sm w-full max-w-md outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-medium border-b border-slate-100">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-[10px]">
                         <tr>
-                            <th class="p-5">Name & ID</th>
-                            <th class="p-5 text-center">Graduation</th>
-                            <th class="p-5 text-center">Military</th>
-                            <th class="p-5 text-center">Birth Cert</th>
-                            <th class="p-5 text-center">ID Card</th>
-                            <th class="p-5 text-center">Criminal Rec</th>
-                            <th class="p-5">Hired At</th>
+                            <th class="p-4">WK</th>
+                            <th class="p-4">ASIN</th>
+                            <th class="p-4">Investigator</th>
+                            <th class="p-4">Status</th>
+                            <th class="p-4">Defect</th>
+                            <th class="p-4">Reversed</th>
+                            <th class="p-4">SIM</th>
                         </tr>
                     </thead>
-                    <tbody id="hrTableBody" class="text-sm divide-y divide-slate-100 background-white"></tbody>
+                    <tbody id="dataTableBody" class="divide-y"></tbody>
                 </table>
             </div>
         </div>
     </main>
 
     <script>
-        // Use your working Google Bridge URL
-        const BRIDGE_URL = "https://script.google.com/macros/s/AKfycbzletEVPyOOMxMlhppEQfsHw8csPWjKKYLKPT8BhDySpBo-IpUnkzpfREUYN7TmZQfEdQ/exec";
-        let employees = [];
+        const BRIDGE_URL = "https://script.google.com/macros/s/AKfycbzohFBYupE0G_o61uoqsrHWSXyj_E1FCNATt4cLsF5RWPcuhKVKmppAoPAsq2KK9TPXng/exec";
+        let allData = [];
         let charts = {};
 
-        // Helper to check for compliant data ('Y' or 'y')
-        const checkCompliant = (val) => val && val.toString().toLowerCase() === 'y';
-
-        async function fetchQuipData() {
-            const statusLabel = document.getElementById('syncStatus');
+        async function init() {
+            const status = document.getElementById('syncStatus');
             try {
-                const response = await fetch(BRIDGE_URL);
-                const quipData = await response.json();
-                
+                const res = await fetch(BRIDGE_URL);
+                const json = await res.json();
                 const parser = new DOMParser();
-                const doc = parser.parseFromString(quipData.html, 'text/html');
-                const rows = Array.from(doc.querySelectorAll('tr')).slice(1); // Skip header row
+                const doc = parser.parseFromString(json.html, 'text/html');
+                const tables = Array.from(doc.querySelectorAll('table'));
 
-                employees = rows.map(row => {
-                    const cells = Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim());
-                    if (cells.length < 5) return null; // Skip non-data rows
-                    return {
-                        amzId: cells[1] || "",
-                        name: cells[2] || "N/A",
-                        doj: cells[3] || "",
-                        grad: checkCompliant(cells[4]),
-                        army: checkCompliant(cells[5]),
-                        birth: checkCompliant(cells[6]),
-                        idCard: checkCompliant(cells[7]),
-                        fish: checkCompliant(cells[8])
-                    };
-                }).filter(e => e && e.name !== "N/A" && e.name.toLowerCase() !== 'name'); // Clean empty data
+                allData = [];
+                tables.forEach(table => {
+                    const rows = Array.from(table.querySelectorAll('tr')).slice(1);
+                    rows.forEach(row => {
+                        const c = Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim());
+                        if (c.length >= 10 && c[4] && c[4] !== "ASIN") {
+                            allData.push({
+                                wk: c[0] || 'N/A',
+                                asin: c[4],
+                                sim: c[6],
+                                investigator: c[7] || 'Unknown',
+                                status: c[8] || 'Unknown',
+                                defect: c[9] || 'No Defect',
+                                reversed: (c[16] || c[15] || '').toLowerCase()
+                            });
+                        }
+                    });
+                });
 
                 updateStats();
-                statusLabel.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Connected & Live';
-                statusLabel.classList.remove('bg-indigo-50','text-indigo-700','border-indigo-100');
-                statusLabel.classList.add('bg-emerald-50','text-emerald-700','border-emerald-100');
-            } catch (err) {
-                console.error(err);
-                statusLabel.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Sync Failed';
-                statusLabel.classList.add('bg-rose-50','text-rose-700','border-rose-100');
+                renderTable();
+                renderCharts();
+                status.innerText = "● LIVE CONNECTED";
+                status.className = "mt-4 md:mt-0 text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-600";
+            } catch (e) {
+                status.innerText = "OFFLINE / ERROR";
+                status.className = "mt-4 md:mt-0 text-xs font-bold px-3 py-1 rounded-full bg-rose-100 text-rose-600";
             }
         }
 
         function updateStats() {
-            const total = employees.length;
-            const fullComp = employees.filter(e => e.grad && e.army && e.birth && e.idCard && e.fish).length;
-            const octCount = employees.filter(e => e.doj.toLowerCase().includes('oct')).length;
-            
-            let missingTotal = 0;
-            employees.forEach(e => {
-                if(!e.grad) missingTotal++; if(!e.army) missingTotal++;
-                if(!e.birth) missingTotal++; if(!e.idCard) missingTotal++;
-                if(!e.fish) missingTotal++;
-            });
+            const total = allData.length;
+            const reversed = allData.filter(d => d.reversed.includes('yes') || d.reversed.includes('reversed')).length;
+            const wip = allData.filter(d => d.status.toLowerCase().includes('wip')).length;
+            const defects = allData.filter(d => !d.defect.toLowerCase().includes('no defect') && d.defect !== "").length;
 
-            document.getElementById('totalEmp').innerText = total;
-            document.getElementById('fullComp').innerText = total > 0 ? Math.round((fullComp/total)*100) + "%" : "0%";
-            document.getElementById('missingDocs').innerText = missingTotal;
-            document.getElementById('octHires').innerText = octCount;
-
-            renderTable();
-            renderCharts();
-        }
-
-        function renderCharts() {
-            // Updated Colors for Light Mode
-            Chart.defaults.color = '#64748b'; // slate 500
-            Chart.defaults.font.family = 'Inter, sans-serif';
-
-            // Trend Chart (Bar chart looks cleaner for simple counts)
-            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            const monthlyData = months.map(m => employees.filter(e => e.doj.toLowerCase().includes(m.toLowerCase())).length);
-
-            if(charts.hiring) charts.hiring.destroy();
-            charts.hiring = new Chart(document.getElementById('hiringChart'), {
-                type: 'bar',
-                data: {
-                    labels: months,
-                    datasets: [{ label: 'New Hires', data: monthlyData, backgroundColor: '#6366f1', borderRadius: 6, maxBarThickness: 30 }]
-                },
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }
-            });
-
-            // Docs Pie
-            const docsCount = [
-                employees.filter(e => e.grad).length,
-                employees.filter(e => e.army).length,
-                employees.filter(e => e.birth).length,
-                employees.filter(e => e.idCard).length,
-                employees.filter(e => e.fish).length
-            ];
-
-            if(charts.docs) charts.docs.destroy();
-            charts.docs = new Chart(document.getElementById('docsChart'), {
-                type: 'pie',
-                data: {
-                    labels: ['Grad', 'Military', 'Birth Cert', 'ID Card', 'Criminal Rec'],
-                    datasets: [{ data: docsCount, backgroundColor: ['#10b981','#3b82f6','#f59e0b','#a855f7','#ec4899'], borderWeight: 0, hoverOffset: 10 }]
-                },
-                options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 15, color: '#1e293b' } } } }
-            });
+            document.getElementById('totalTickets').innerText = total;
+            document.getElementById('reversalRate').innerText = total > 0 ? Math.round((reversed/total)*100) + "%" : "0%";
+            document.getElementById('activeWip').innerText = wip;
+            document.getElementById('defectCount').innerText = defects;
         }
 
         function renderTable() {
-            const term = document.getElementById('hrSearch').value.toLowerCase();
-            const body = document.getElementById('hrTableBody');
-            body.innerHTML = employees
-                .filter(e => e.name.toLowerCase().includes(term))
-                .map(e => `
-                    <tr>
-                        <td class="p-5"><b class="text-slate-950 font-semibold">${e.name}</b><br><span class="text-[11px] text-slate-500 font-mono uppercase">${e.amzId}</span></td>
-                        <td class="p-5 text-center"><span class="status-dot ${e.grad?'status-y':'status-n'}"></span></td>
-                        <td class="p-4 text-center"><span class="status-dot ${e.army?'status-y':'status-n'}"></span></td>
-                        <td class="p-5 text-center"><span class="status-dot ${e.birth?'status-y':'status-n'}"></span></td>
-                        <td class="p-5 text-center"><span class="status-dot ${e.idCard?'status-y':'status-n'}"></span></td>
-                        <td class="p-5 text-center"><span class="status-dot ${e.fish?'status-y':'status-n'}"></span></td>
-                        <td class="p-5 font-medium text-slate-700 text-xs">${e.doj}</td>
-                    </tr>
-                `).join('');
+            const body = document.getElementById('dataTableBody');
+            body.innerHTML = allData.map(d => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-4 font-bold text-slate-400">${d.wk}</td>
+                    <td class="p-4 font-bold">${d.asin}</td>
+                    <td class="p-4">${d.investigator}</td>
+                    <td class="p-4"><span class="status-badge ${getStatusClass(d.status)}">${d.status}</span></td>
+                    <td class="p-4 text-xs">${d.defect}</td>
+                    <td class="p-4 font-bold ${d.reversed.includes('yes')||d.reversed.includes('rev')?'text-emerald-600':'text-slate-300'}">${d.reversed}</td>
+                    <td class="p-4"><a href="${d.sim}" target="_blank" class="text-indigo-600 hover:underline font-bold text-xs italic">OPEN SIM ↗</a></td>
+                </tr>
+            `).join('');
         }
 
-        window.onload = fetchQuipData;
+        function getStatusClass(s) {
+            s = s.toLowerCase();
+            if (s.includes('done')) return 'bg-done';
+            if (s.includes('wip')) return 'bg-wip';
+            return 'bg-pending';
+        }
+
+        function renderCharts() {
+            const invMap = {};
+            allData.forEach(d => invMap[d.investigator] = (invMap[d.investigator] || 0) + 1);
+
+            if(charts.inv) charts.inv.destroy();
+            charts.inv = new Chart(document.getElementById('investigatorChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(invMap),
+                    datasets: [{ label: 'Tickets per Investigator', data: Object.values(invMap), backgroundColor: '#6366f1' }]
+                },
+                options: { responsive: true, plugins: { title: { display: true, text: 'Workload Distribution' } } }
+            });
+
+            const defMap = {};
+            allData.slice(0, 100).forEach(d => { if(d.defect !== 'No Defect') defMap[d.defect] = (defMap[d.defect] || 0) + 1 });
+
+            if(charts.def) charts.def.destroy();
+            charts.def = new Chart(document.getElementById('defectChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(defMap),
+                    datasets: [{ data: Object.values(defMap), backgroundColor: ['#f43f5e','#fbbf24','#10b981','#3b82f6','#8b5cf6'] }]
+                },
+                options: { responsive: true, plugins: { title: { display: true, text: 'Defect Type Breakdown' } } }
+            });
+        }
+
+        function switchTab(tab) {
+            document.getElementById('stats-section').classList.toggle('hidden', tab !== 'stats');
+            document.getElementById('table-section').classList.toggle('hidden', tab !== 'table');
+            document.getElementById('tab-stats').classList.toggle('active', tab === 'stats');
+            document.getElementById('tab-table').classList.toggle('active', tab === 'table');
+        }
+
+        function filterTable() {
+            const val = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#dataTableBody tr');
+            rows.forEach(row => {
+                row.style.display = row.innerText.toLowerCase().includes(val) ? '' : 'none';
+            });
+        }
+
+        init();
     </script>
 </body>
 </html>
