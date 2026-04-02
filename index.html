@@ -83,7 +83,6 @@
     </main>
 
     <script>
-        // رابط الـ EXEC الجديد بتاعك
         const API_URL = "https://script.google.com/macros/s/AKfycbwB8VXX0omusH1PvnaLIvn62whEnjo8WOoFqE4GRJhvBuwtGqouPoPkMa6nfEdz2OCb/exec";
         
         let allData = [];
@@ -95,22 +94,35 @@
                 const response = await fetch(API_URL);
                 const data = await response.json();
                 
+                if (!data.html) {
+                    statusLabel.innerText = "No Data Found";
+                    return;
+                }
+
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(data.html, 'text/html');
                 const rows = Array.from(doc.querySelectorAll('tr'));
 
                 allData = [];
                 rows.forEach(row => {
+                    const rowText = row.innerText || "";
                     const cells = Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim());
-                    // البحث عن ASIN
-                    const asin = cells.find(c => c.startsWith('B0') && c.length === 10);
-                    if (asin) {
+                    
+                    // استخدام Regex للبحث عن الـ ASIN في كامل الصف لضمان الدقة
+                    const asinMatch = rowText.match(/B0[A-Z0-9]{8}/);
+                    
+                    if (asinMatch) {
+                        const asin = asinMatch[0];
                         allData.push({
                             asin: asin,
-                            inv: cells.find(c => ["Yousef", "Hayam", "Samy", "Mohamed"].includes(c)) || "N/A",
-                            status: cells.find(c => ["Done", "WIP", "Pending", "Resolved"].some(s => c.includes(s))) || "WIP",
-                            rev: cells.some(c => c.toLowerCase() === 'yes' || c.toLowerCase().includes('rev')) ? 'Yes' : 'No',
-                            link: cells.find(c => c.includes('http')) || "#"
+                            // البحث عن المحقق من القائمة المعرفة
+                            inv: cells.find(c => ["Yousef", "Hayam", "Samy", "Mohamed"].some(name => c.includes(name))) || "N/A",
+                            // تحديد الحالة بناءً على وجود الكلمة في أي مكان بالخلية
+                            status: cells.find(c => ["Done", "WIP", "Pending", "Resolved"].some(s => c.toUpperCase().includes(s.toUpperCase()))) || "Pending",
+                            // التحقق من وجود كلمة Yes أو Reversed
+                            rev: rowText.toLowerCase().includes('yes') || rowText.toLowerCase().includes('rev') ? 'Yes' : 'No',
+                            // البحث عن أي رابط داخل الصف
+                            link: row.querySelector('a') ? row.querySelector('a').href : "#"
                         });
                     }
                 });
@@ -119,9 +131,11 @@
                     updateDashboard();
                     statusLabel.innerText = `● LIVE: ${allData.length} RECORDS`;
                     statusLabel.className = "px-4 py-2 rounded-full bg-emerald-100 text-emerald-600 font-bold text-xs shadow-sm uppercase tracking-widest";
+                } else {
+                    statusLabel.innerText = "No ASINs Detected";
                 }
             } catch (err) {
-                statusLabel.innerText = "Connection Failed";
+                statusLabel.innerText = "Sync Failed";
                 console.error(err);
             }
         }
@@ -129,8 +143,8 @@
         function updateDashboard() {
             document.getElementById('totalCount').innerText = allData.length;
             const revCount = allData.filter(d => d.rev === 'Yes').length;
-            document.getElementById('revRate').innerText = Math.round((revCount/allData.length)*100) + "%";
-            document.getElementById('wipCount').innerText = allData.filter(d => d.status !== 'Done').length;
+            document.getElementById('revRate').innerText = allData.length > 0 ? Math.round((revCount/allData.length)*100) + "%" : "0%";
+            document.getElementById('wipCount').innerText = allData.filter(d => d.status.toUpperCase() !== 'DONE').length;
             document.getElementById('defects').innerText = revCount;
 
             const tbody = document.getElementById('mainTable');
@@ -138,7 +152,7 @@
                 <tr class="hover:bg-slate-50 transition">
                     <td class="p-4 font-bold text-indigo-600">${d.asin}</td>
                     <td class="p-4 font-medium text-slate-700">${d.inv}</td>
-                    <td class="p-4"><span class="status-badge ${d.status === 'Done' ? 'bg-done' : 'bg-wip'}">${d.status}</span></td>
+                    <td class="p-4"><span class="status-badge ${d.status.toUpperCase().includes('DONE') ? 'bg-done' : 'bg-wip'}">${d.status}</span></td>
                     <td class="p-4 font-bold ${d.rev === 'Yes' ? 'text-emerald-600' : 'text-slate-300'}">${d.rev}</td>
                     <td class="p-4"><a href="${d.link}" target="_blank" class="text-indigo-500 hover:text-indigo-700 font-bold text-lg">↗</a></td>
                 </tr>
@@ -148,20 +162,34 @@
         }
 
         function renderCharts() {
-            const invs = {}; allData.forEach(d => { if(d.inv !== 'N/A') invs[d.inv] = (invs[d.inv] || 0) + 1 });
+            // Investigator Chart
+            const invs = {}; 
+            allData.forEach(d => { if(d.inv !== 'N/A') invs[d.inv] = (invs[d.inv] || 0) + 1 });
+            
             if(charts.inv) charts.inv.destroy();
-            charts.inv = new Chart(document.getElementById('chartInv'), {
+            const ctxInv = document.getElementById('chartInv').getContext('2d');
+            charts.inv = new Chart(ctxInv, {
                 type: 'bar',
-                data: { labels: Object.keys(invs), datasets: [{ label: 'Workload', data: Object.values(invs), backgroundColor: '#6366f1', borderRadius: 8 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Team Distribution' } } }
+                data: { 
+                    labels: Object.keys(invs), 
+                    datasets: [{ label: 'Workload', data: Object.values(invs), backgroundColor: '#6366f1', borderRadius: 8 }] 
+                },
+                options: { responsive: true, maintainAspectRatio: false }
             });
 
-            const stats = { 'Done': allData.filter(d => d.status === 'Done').length, 'WIP/Others': allData.filter(d => d.status !== 'Done').length };
+            // Status Chart
+            const done = allData.filter(d => d.status.toUpperCase().includes('DONE')).length;
+            const others = allData.length - done;
+            
             if(charts.status) charts.status.destroy();
-            charts.status = new Chart(document.getElementById('chartStatus'), {
+            const ctxStatus = document.getElementById('chartStatus').getContext('2d');
+            charts.status = new Chart(ctxStatus, {
                 type: 'doughnut',
-                data: { labels: Object.keys(stats), datasets: [{ data: Object.values(stats), backgroundColor: ['#10b981', '#f59e0b'] }] },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { title: { display: true, text: 'Completion Status' } } }
+                data: { 
+                    labels: ['Done', 'In Progress'], 
+                    datasets: [{ data: [done, others], backgroundColor: ['#10b981', '#f59e0b'] }] 
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
             });
         }
 
@@ -174,7 +202,9 @@
 
         function filter() {
             const q = document.getElementById('search').value.toLowerCase();
-            document.querySelectorAll('#mainTable tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none');
+            document.querySelectorAll('#mainTable tr').forEach(r => {
+                r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none';
+            });
         }
 
         init();
