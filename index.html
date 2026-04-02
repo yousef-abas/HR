@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Operations Intelligence Hub</title>
+    <title>Operations Intelligence Hub - Live</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
         .glass-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .tab-btn { padding: 10px 20px; font-weight: 600; color: #64748b; border-bottom: 2px solid transparent; transition: 0.3s; }
+        .tab-btn { padding: 12px 24px; font-weight: 600; color: #64748b; border-bottom: 2px solid transparent; transition: 0.3s; }
         .tab-btn.active { color: #4f46e5; border-bottom-color: #4f46e5; background: #f5f3ff; }
-        .status-badge { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
         .bg-done { background: #dcfce7; color: #166534; }
         .bg-wip { background: #fef9c3; color: #854d0e; }
         .bg-pending { background: #fee2e2; color: #991b1b; }
+        tr:nth-child(even) { background-color: #fcfcfd; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -23,115 +24,143 @@
     <header class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-6">
         <div>
             <h1 class="text-2xl font-bold text-slate-900">Operations Intelligence Hub</h1>
-            <p class="text-slate-500 text-sm">Real-time Analysis for CCR & Bin Checks</p>
+            <p class="text-slate-500 text-sm">Automated Tracker for PVS & CCR Operations</p>
         </div>
-        <div id="syncStatus" class="mt-4 md:mt-0 text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-500 uppercase tracking-widest">
-            Connecting to Quip...
+        <div id="syncStatus" class="mt-4 md:mt-0 text-xs font-bold px-4 py-2 rounded-full bg-slate-100 text-slate-500 uppercase tracking-widest shadow-sm">
+            Initializing Connection...
         </div>
     </header>
 
-    <div class="max-w-7xl mx-auto mb-6 flex gap-4 border-b border-slate-200">
-        <button onclick="switchTab('stats')" id="tab-stats" class="tab-btn active">Overview & Charts</button>
+    <div class="max-w-7xl mx-auto mb-6 flex gap-2 border-b border-slate-200">
+        <button onclick="switchTab('stats')" id="tab-stats" class="tab-btn active">Overview Analytics</button>
         <button onclick="switchTab('table')" id="tab-table" class="tab-btn">Data Explorer</button>
     </div>
 
     <main id="stats-section" class="max-w-7xl mx-auto space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="glass-card p-6 border-l-4 border-indigo-500">
-                <p class="text-xs font-bold text-slate-500 uppercase">Total Tickets</p>
-                <h2 id="totalTickets" class="text-3xl font-bold mt-1 text-slate-900">--</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="glass-card p-6 border-t-4 border-indigo-500">
+                <p class="text-xs font-bold text-slate-400 uppercase">Total Analyzed TTs</p>
+                <h2 id="totalTickets" class="text-3xl font-bold mt-2 text-slate-900">--</h2>
             </div>
-            <div class="glass-card p-6 border-l-4 border-emerald-500">
-                <p class="text-xs font-bold text-slate-500 uppercase">Reversal Rate</p>
-                <h2 id="reversalRate" class="text-3xl font-bold mt-1 text-emerald-600">--</h2>
+            <div class="glass-card p-6 border-t-4 border-emerald-500">
+                <p class="text-xs font-bold text-slate-400 uppercase">Reversal Rate</p>
+                <h2 id="reversalRate" class="text-3xl font-bold mt-2 text-emerald-600">--</h2>
             </div>
-            <div class="glass-card p-6 border-l-4 border-amber-500">
-                <p class="text-xs font-bold text-slate-500 uppercase">Active WIP</p>
-                <h2 id="activeWip" class="text-3xl font-bold mt-1 text-amber-600">--</h2>
+            <div class="glass-card p-6 border-t-4 border-amber-500">
+                <p class="text-xs font-bold text-slate-400 uppercase">Active WIP</p>
+                <h2 id="activeWip" class="text-3xl font-bold mt-2 text-amber-600">--</h2>
             </div>
-            <div class="glass-card p-6 border-l-4 border-rose-500">
-                <p class="text-xs font-bold text-slate-500 uppercase">Defects Found</p>
-                <h2 id="defectCount" class="text-3xl font-bold mt-1 text-rose-600">--</h2>
+            <div class="glass-card p-6 border-t-4 border-rose-500">
+                <p class="text-xs font-bold text-slate-400 uppercase">Defects Detected</p>
+                <h2 id="defectCount" class="text-3xl font-bold mt-2 text-rose-600">--</h2>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="glass-card p-6"><canvas id="investigatorChart" height="250"></canvas></div>
-            <div class="glass-card p-6"><canvas id="defectChart" height="250"></canvas></div>
+            <div class="glass-card p-6 h-[350px]">
+                <canvas id="investigatorChart"></canvas>
+            </div>
+            <div class="glass-card p-6 h-[350px]">
+                <canvas id="defectChart"></canvas>
+            </div>
         </div>
     </main>
 
     <main id="table-section" class="max-w-7xl mx-auto hidden">
         <div class="glass-card overflow-hidden">
-            <div class="p-4 border-b bg-slate-50 flex justify-between items-center">
-                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search ASIN or Investigator..." class="p-2 border rounded-lg text-sm w-full max-w-md outline-none focus:ring-2 focus:ring-indigo-500">
+            <div class="p-4 border-b bg-slate-50 flex flex-wrap gap-4 justify-between items-center">
+                <div class="relative w-full max-w-md">
+                    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search by ASIN, Investigator, or Status..." class="p-3 pl-10 border rounded-xl text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
+                    <span class="absolute left-3 top-3 text-slate-400">🔍</span>
+                </div>
+                <div class="text-xs text-slate-400 font-medium">Showing latest synchronized entries</div>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-[10px]">
+                    <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
                         <tr>
                             <th class="p-4">WK</th>
                             <th class="p-4">ASIN</th>
                             <th class="p-4">Investigator</th>
                             <th class="p-4">Status</th>
-                            <th class="p-4">Defect</th>
+                            <th class="p-4">Defect Type</th>
                             <th class="p-4">Reversed</th>
-                            <th class="p-4">SIM</th>
+                            <th class="p-4">Tools</th>
                         </tr>
                     </thead>
-                    <tbody id="dataTableBody" class="divide-y"></tbody>
+                    <tbody id="dataTableBody" class="divide-y divide-slate-100">
+                        </tbody>
                 </table>
             </div>
         </div>
     </main>
 
     <script>
-        const BRIDGE_URL = "https://script.google.com/macros/s/AKfycbzohFBYupE0G_o61uoqsrHWSXyj_E1FCNATt4cLsF5RWPcuhKVKmppAoPAsq2KK9TPXng/exec";
+        // رابط الجسر الخاص بك
+        const BRIDGE_URL = "https://script.google.com/macros/s/AKfycbwJeM2JnmsembRL8RfAMphFrvK7wGMHwHEbeljkumc9dZmsyIytH2X4HNlLILzaPAJS/exec";
+        
         let allData = [];
         let charts = {};
 
         async function init() {
-            const status = document.getElementById('syncStatus');
+            const statusIndicator = document.getElementById('syncStatus');
             try {
-                const res = await fetch(BRIDGE_URL);
-                const json = await res.json();
+                const response = await fetch(BRIDGE_URL);
+                const data = await response.json();
+                
+                if (!data.html) {
+                    statusIndicator.innerText = "Error: Invalid Data Source";
+                    return;
+                }
+
                 const parser = new DOMParser();
-                const doc = parser.parseFromString(json.html, 'text/html');
+                const doc = parser.parseFromString(data.html, 'text/html');
                 const tables = Array.from(doc.querySelectorAll('table'));
 
                 allData = [];
                 tables.forEach(table => {
-                    const rows = Array.from(table.querySelectorAll('tr')).slice(1);
+                    const rows = Array.from(table.querySelectorAll('tr'));
                     rows.forEach(row => {
-                        const c = Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim());
-                        if (c.length >= 10 && c[4] && c[4] !== "ASIN") {
+                        const cells = Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim());
+                        
+                        // البحث عن الـ ASIN (الذي يبدأ بـ B0) ديناميكياً
+                        let asinIdx = cells.findIndex(c => c.startsWith('B0') && c.length === 10);
+                        
+                        if (asinIdx !== -1 && cells.length > 8) {
                             allData.push({
-                                wk: c[0] || 'N/A',
-                                asin: c[4],
-                                sim: c[6],
-                                investigator: c[7] || 'Unknown',
-                                status: c[8] || 'Unknown',
-                                defect: c[9] || 'No Defect',
-                                reversed: (c[16] || c[15] || '').toLowerCase()
+                                wk: cells[0] || '—',
+                                asin: cells[asinIdx],
+                                sim: cells.find(c => c.includes('t.corp') || c.includes('pvs-ui')) || '#',
+                                investigator: cells[asinIdx + 3] || 'Unknown',
+                                status: cells[asinIdx + 4] || 'Unknown',
+                                defect: cells[asinIdx + 5] || 'No Defect',
+                                reversed: (cells[cells.length - 1] || '').toLowerCase()
                             });
                         }
                     });
                 });
 
-                updateStats();
-                renderTable();
-                renderCharts();
-                status.innerText = "● LIVE CONNECTED";
-                status.className = "mt-4 md:mt-0 text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-600";
-            } catch (e) {
-                status.innerText = "OFFLINE / ERROR";
-                status.className = "mt-4 md:mt-0 text-xs font-bold px-3 py-1 rounded-full bg-rose-100 text-rose-600";
+                if (allData.length > 0) {
+                    // مسح التكرار بناءً على الـ ASIN
+                    allData = Array.from(new Set(allData.map(a => a.asin)))
+                                 .map(asin => allData.find(a => a.asin === asin));
+
+                    updateDashboard();
+                    statusIndicator.innerText = `● SYNCED: ${allData.length} TTs`;
+                    statusIndicator.className = "mt-4 md:mt-0 text-xs font-bold px-4 py-2 rounded-full bg-emerald-100 text-emerald-600 uppercase tracking-widest shadow-sm";
+                } else {
+                    statusIndicator.innerText = "● NO DATA FOUND";
+                }
+            } catch (error) {
+                statusIndicator.innerText = "● CONNECTION FAILED";
+                statusIndicator.className = "mt-4 md:mt-0 text-xs font-bold px-4 py-2 rounded-full bg-rose-100 text-rose-600 uppercase tracking-widest";
+                console.error("Critical Error:", error);
             }
         }
 
-        function updateStats() {
+        function updateDashboard() {
             const total = allData.length;
-            const reversed = allData.filter(d => d.reversed.includes('yes') || d.reversed.includes('reversed')).length;
+            const reversed = allData.filter(d => d.reversed.includes('rev') || d.reversed.includes('yes')).length;
             const wip = allData.filter(d => d.status.toLowerCase().includes('wip')).length;
             const defects = allData.filter(d => !d.defect.toLowerCase().includes('no defect') && d.defect !== "").length;
 
@@ -139,55 +168,82 @@
             document.getElementById('reversalRate').innerText = total > 0 ? Math.round((reversed/total)*100) + "%" : "0%";
             document.getElementById('activeWip').innerText = wip;
             document.getElementById('defectCount').innerText = defects;
+
+            renderTable();
+            renderCharts();
         }
 
         function renderTable() {
             const body = document.getElementById('dataTableBody');
             body.innerHTML = allData.map(d => `
                 <tr class="hover:bg-slate-50 transition">
-                    <td class="p-4 font-bold text-slate-400">${d.wk}</td>
-                    <td class="p-4 font-bold">${d.asin}</td>
-                    <td class="p-4">${d.investigator}</td>
-                    <td class="p-4"><span class="status-badge ${getStatusClass(d.status)}">${d.status}</span></td>
-                    <td class="p-4 text-xs">${d.defect}</td>
-                    <td class="p-4 font-bold ${d.reversed.includes('yes')||d.reversed.includes('rev')?'text-emerald-600':'text-slate-300'}">${d.reversed}</td>
-                    <td class="p-4"><a href="${d.sim}" target="_blank" class="text-indigo-600 hover:underline font-bold text-xs italic">OPEN SIM ↗</a></td>
+                    <td class="p-4 font-semibold text-slate-400">${d.wk}</td>
+                    <td class="p-4 font-bold text-indigo-600">${d.asin}</td>
+                    <td class="p-4 text-slate-600 font-medium">${d.investigator}</td>
+                    <td class="p-4"><span class="status-badge ${getStatusBadgeClass(d.status)}">${d.status}</span></td>
+                    <td class="p-4 text-[11px] text-slate-500 max-w-[180px] truncate" title="${d.defect}">${d.defect}</td>
+                    <td class="p-4">
+                        ${d.reversed.includes('rev') || d.reversed.includes('yes') 
+                            ? '<span class="text-emerald-500 font-bold text-lg">✓</span>' 
+                            : '<span class="text-slate-200">—</span>'}
+                    </td>
+                    <td class="p-4">
+                        <a href="${d.sim}" target="_blank" class="inline-flex items-center justify-center p-2 rounded-lg bg-slate-50 hover:bg-indigo-50 text-indigo-600 transition-colors border border-slate-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        </a>
+                    </td>
                 </tr>
             `).join('');
         }
 
-        function getStatusClass(s) {
-            s = s.toLowerCase();
+        function getStatusBadgeClass(status) {
+            const s = status.toLowerCase();
             if (s.includes('done')) return 'bg-done';
             if (s.includes('wip')) return 'bg-wip';
-            return 'bg-pending';
+            if (s.includes('pending')) return 'bg-pending';
+            return 'bg-slate-100 text-slate-400';
         }
 
         function renderCharts() {
+            // Investigator Performance
             const invMap = {};
-            allData.forEach(d => invMap[d.investigator] = (invMap[d.investigator] || 0) + 1);
+            allData.forEach(d => { if(d.investigator !== 'Unknown') invMap[d.investigator] = (invMap[d.investigator] || 0) + 1 });
 
             if(charts.inv) charts.inv.destroy();
             charts.inv = new Chart(document.getElementById('investigatorChart'), {
                 type: 'bar',
                 data: {
                     labels: Object.keys(invMap),
-                    datasets: [{ label: 'Tickets per Investigator', data: Object.values(invMap), backgroundColor: '#6366f1' }]
+                    datasets: [{ label: 'Tickets', data: Object.values(invMap), backgroundColor: '#6366f1', borderRadius: 8 }]
                 },
-                options: { responsive: true, plugins: { title: { display: true, text: 'Workload Distribution' } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, title: { display: true, text: 'TEAM WORKLOAD DISTRIBUTION', font: { size: 12, weight: 'bold' }, color: '#64748b' } },
+                    scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } }
+                }
             });
 
+            // Defect Type Distribution
             const defMap = {};
-            allData.slice(0, 100).forEach(d => { if(d.defect !== 'No Defect') defMap[d.defect] = (defMap[d.defect] || 0) + 1 });
+            allData.forEach(d => { 
+                if(d.defect !== 'No Defect' && d.defect !== 'Unknown') 
+                    defMap[d.defect] = (defMap[d.defect] || 0) + 1 
+            });
 
             if(charts.def) charts.def.destroy();
             charts.def = new Chart(document.getElementById('defectChart'), {
                 type: 'doughnut',
                 data: {
                     labels: Object.keys(defMap),
-                    datasets: [{ data: Object.values(defMap), backgroundColor: ['#f43f5e','#fbbf24','#10b981','#3b82f6','#8b5cf6'] }]
+                    datasets: [{ data: Object.values(defMap), backgroundColor: ['#f43f5e','#fbbf24','#10b981','#3b82f6','#8b5cf6'], borderWidth: 0, hoverOffset: 10 }]
                 },
-                options: { responsive: true, plugins: { title: { display: true, text: 'Defect Type Breakdown' } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } }, title: { display: true, text: 'DEFECT ANALYSIS', font: { size: 12, weight: 'bold' }, color: '#64748b' } },
+                    cutout: '70%'
+                }
             });
         }
 
@@ -199,10 +255,10 @@
         }
 
         function filterTable() {
-            const val = document.getElementById('searchInput').value.toLowerCase();
+            const query = document.getElementById('searchInput').value.toLowerCase();
             const rows = document.querySelectorAll('#dataTableBody tr');
             rows.forEach(row => {
-                row.style.display = row.innerText.toLowerCase().includes(val) ? '' : 'none';
+                row.style.display = row.innerText.toLowerCase().includes(query) ? '' : 'none';
             });
         }
 
