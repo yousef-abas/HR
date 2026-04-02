@@ -83,7 +83,6 @@
     </main>
 
     <script>
-        // الرابط الجديد اللي آخره DaY
         const API_URL = "https://script.google.com/macros/s/AKfycbzWevuSuWsZUIItdJzUPrIG3rtTkvStUSkG3nPgqv3ftZvl_0e675CIWXhrvzr4VDaY/exec";
         
         let allData = [];
@@ -106,19 +105,30 @@
 
                 allData = [];
                 rows.forEach(row => {
-                    const rowText = row.innerText || "";
-                    const cells = Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim());
+                    // استخراج كل النصوص من الخلايا في الصف
+                    const cells = Array.from(row.querySelectorAll('td, th')).map(c => c.innerText.trim());
+                    const fullRowText = cells.join(" ");
                     
-                    // صائد الـ ASIN الذكي
-                    const asinMatch = rowText.match(/B0[A-Z0-9]{8}/);
+                    // بحث "أعمى" عن نمط الـ ASIN (B0 + 8 رموز)
+                    const asinMatch = fullRowText.match(/B0[A-Z0-9]{8}/i);
                     
                     if (asinMatch) {
-                        const asin = asinMatch[0];
+                        const asin = asinMatch[0].toUpperCase();
+                        
+                        // تحديد المحقق: بندور على أي خلية فيها اسم من الفريق
+                        const investigator = cells.find(c => /Yousef|Hayam|Samy|Mohamed/i.test(c)) || "N/A";
+                        
+                        // تحديد الحالة: بندور على الكلمات المفتاحية
+                        const statusCell = cells.find(c => /Done|WIP|Pending|Resolved/i.test(c)) || "Pending";
+                        
+                        // تحديد هل تم الـ Reversal؟
+                        const isRev = /Yes|Rev/i.test(fullRowText) ? 'Yes' : 'No';
+
                         allData.push({
                             asin: asin,
-                            inv: cells.find(c => ["Yousef", "Hayam", "Samy", "Mohamed"].some(name => c.includes(name))) || "N/A",
-                            status: cells.find(c => ["Done", "WIP", "Pending", "Resolved"].some(s => c.toUpperCase().includes(s.toUpperCase()))) || "Pending",
-                            rev: rowText.toLowerCase().includes('yes') || rowText.toLowerCase().includes('rev') ? 'Yes' : 'No',
+                            inv: investigator,
+                            status: statusCell,
+                            rev: isRev,
                             link: row.querySelector('a') ? row.querySelector('a').href : "#"
                         });
                     }
@@ -129,7 +139,8 @@
                     statusLabel.innerText = `● LIVE: ${allData.length} RECORDS`;
                     statusLabel.className = "px-4 py-2 rounded-full bg-emerald-100 text-emerald-600 font-bold text-xs shadow-sm uppercase tracking-widest";
                 } else {
-                    statusLabel.innerText = "No ASINs Detected";
+                    statusLabel.innerText = "No ASINs Found";
+                    console.log("Data sample:", rows[1]?.innerHTML); // عشان لو منفعش نشوف السبب في الـ console
                 }
             } catch (err) {
                 statusLabel.innerText = "Sync Failed";
@@ -149,7 +160,7 @@
                 <tr class="hover:bg-slate-50 transition border-b">
                     <td class="p-4 font-bold text-indigo-600">${d.asin}</td>
                     <td class="p-4 font-medium text-slate-700">${d.inv}</td>
-                    <td class="p-4"><span class="status-badge ${d.status.toUpperCase().includes('DONE') ? 'bg-done' : 'bg-wip'}">${d.status}</span></td>
+                    <td class="p-4"><span class="status-badge ${/DONE|RESOLVED/i.test(d.status) ? 'bg-done' : 'bg-wip'}">${d.status}</span></td>
                     <td class="p-4 font-bold ${d.rev === 'Yes' ? 'text-emerald-600' : 'text-slate-300'}">${d.rev}</td>
                     <td class="p-4"><a href="${d.link}" target="_blank" class="text-indigo-500 hover:text-indigo-700 font-bold text-lg">↗</a></td>
                 </tr>
@@ -173,7 +184,7 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
 
-            const done = allData.filter(d => d.status.toUpperCase().includes('DONE')).length;
+            const done = allData.filter(d => /DONE|RESOLVED/i.test(d.status)).length;
             const others = allData.length - done;
             
             if(charts.status) charts.status.destroy();
