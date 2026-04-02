@@ -83,7 +83,8 @@
     </main>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzWevuSuWsZUIItdJzUPrIG3rtTkvStUSkG3nPgqv3ftZvl_0e675CIWXhrvzr4VDaY/exec";
+        // الرابط الجديد الخاص بك
+        const API_URL = "https://script.google.com/macros/s/AKfycbwWHsRftTFvi2Ca3ef1ezN--Jcz1Y-UKfQJ8O84oWGtaCO9s3ETPFBW8U1MiGKKtJI2/exec";
         
         let allData = [];
         let charts = {};
@@ -94,42 +95,39 @@
                 const response = await fetch(API_URL);
                 const data = await response.json();
                 
-                if (!data.html) {
-                    statusLabel.innerText = "No Data Found";
+                if (!data.text) {
+                    statusLabel.innerText = "Data Empty or Error";
                     return;
                 }
 
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(data.html, 'text/html');
-                const rows = Array.from(doc.querySelectorAll('tr'));
-
+                // تقسيم النص الصافي القادم من Quip إلى أسطر
+                const lines = data.text.split('\n');
                 allData = [];
-                rows.forEach(row => {
-                    // استخراج كل النصوص من الخلايا في الصف
-                    const cells = Array.from(row.querySelectorAll('td, th')).map(c => c.innerText.trim());
-                    const fullRowText = cells.join(" ");
-                    
-                    // بحث "أعمى" عن نمط الـ ASIN (B0 + 8 رموز)
-                    const asinMatch = fullRowText.match(/B0[A-Z0-9]{8}/i);
+
+                lines.forEach(line => {
+                    // البحث عن ASIN (B0 متبوعة بـ 8 رموز)
+                    const asinMatch = line.match(/B0[A-Z0-9]{8}/i);
                     
                     if (asinMatch) {
                         const asin = asinMatch[0].toUpperCase();
                         
-                        // تحديد المحقق: بندور على أي خلية فيها اسم من الفريق
-                        const investigator = cells.find(c => /Yousef|Hayam|Samy|Mohamed/i.test(c)) || "N/A";
+                        // استخراج المحقق (بناءً على قائمة الأسماء)
+                        const investigator = ["Yousef", "Hayam", "Samy", "Mohamed"].find(name => 
+                            line.toLowerCase().includes(name.toLowerCase())
+                        ) || "N/A";
                         
-                        // تحديد الحالة: بندور على الكلمات المفتاحية
-                        const statusCell = cells.find(c => /Done|WIP|Pending|Resolved/i.test(c)) || "Pending";
+                        // استخراج الحالة
+                        const status = /Done|Resolved/i.test(line) ? "Done" : "WIP";
                         
-                        // تحديد هل تم الـ Reversal؟
-                        const isRev = /Yes|Rev/i.test(fullRowText) ? 'Yes' : 'No';
+                        // فحص الـ Reversal
+                        const isRev = /Yes|Rev/i.test(line) ? 'Yes' : 'No';
 
                         allData.push({
                             asin: asin,
                             inv: investigator,
-                            status: statusCell,
+                            status: status,
                             rev: isRev,
-                            link: row.querySelector('a') ? row.querySelector('a').href : "#"
+                            link: "#" 
                         });
                     }
                 });
@@ -139,8 +137,7 @@
                     statusLabel.innerText = `● LIVE: ${allData.length} RECORDS`;
                     statusLabel.className = "px-4 py-2 rounded-full bg-emerald-100 text-emerald-600 font-bold text-xs shadow-sm uppercase tracking-widest";
                 } else {
-                    statusLabel.innerText = "No ASINs Found";
-                    console.log("Data sample:", rows[1]?.innerHTML); // عشان لو منفعش نشوف السبب في الـ console
+                    statusLabel.innerText = "No ASINs Detected";
                 }
             } catch (err) {
                 statusLabel.innerText = "Sync Failed";
@@ -152,7 +149,7 @@
             document.getElementById('totalCount').innerText = allData.length;
             const revCount = allData.filter(d => d.rev === 'Yes').length;
             document.getElementById('revRate').innerText = allData.length > 0 ? Math.round((revCount/allData.length)*100) + "%" : "0%";
-            document.getElementById('wipCount').innerText = allData.filter(d => !d.status.toUpperCase().includes('DONE')).length;
+            document.getElementById('wipCount').innerText = allData.filter(d => d.status === 'WIP').length;
             document.getElementById('defects').innerText = revCount;
 
             const tbody = document.getElementById('mainTable');
@@ -160,9 +157,9 @@
                 <tr class="hover:bg-slate-50 transition border-b">
                     <td class="p-4 font-bold text-indigo-600">${d.asin}</td>
                     <td class="p-4 font-medium text-slate-700">${d.inv}</td>
-                    <td class="p-4"><span class="status-badge ${/DONE|RESOLVED/i.test(d.status) ? 'bg-done' : 'bg-wip'}">${d.status}</span></td>
+                    <td class="p-4"><span class="status-badge ${d.status === 'Done' ? 'bg-done' : 'bg-wip'}">${d.status}</span></td>
                     <td class="p-4 font-bold ${d.rev === 'Yes' ? 'text-emerald-600' : 'text-slate-300'}">${d.rev}</td>
-                    <td class="p-4"><a href="${d.link}" target="_blank" class="text-indigo-500 hover:text-indigo-700 font-bold text-lg">↗</a></td>
+                    <td class="p-4"><span class="text-slate-300">N/A</span></td>
                 </tr>
             `).join('');
 
@@ -179,13 +176,13 @@
                 type: 'bar',
                 data: { 
                     labels: Object.keys(invs), 
-                    datasets: [{ label: 'Workload', data: Object.values(invs), backgroundColor: '#6366f1', borderRadius: 8 }] 
+                    datasets: [{ label: 'Tickets', data: Object.values(invs), backgroundColor: '#6366f1', borderRadius: 8 }] 
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
 
-            const done = allData.filter(d => /DONE|RESOLVED/i.test(d.status)).length;
-            const others = allData.length - done;
+            const done = allData.filter(d => d.status === 'Done').length;
+            const wip = allData.length - done;
             
             if(charts.status) charts.status.destroy();
             const ctxStatus = document.getElementById('chartStatus').getContext('2d');
@@ -193,7 +190,7 @@
                 type: 'doughnut',
                 data: { 
                     labels: ['Done', 'WIP'], 
-                    datasets: [{ data: [done, others], backgroundColor: ['#10b981', '#f59e0b'] }] 
+                    datasets: [{ data: [done, wip], backgroundColor: ['#10b981', '#f59e0b'] }] 
                 },
                 options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
             });
