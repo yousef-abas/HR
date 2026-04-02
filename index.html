@@ -3,17 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HR Compliance | Quip Live Pro</title>
+    <title>HR Intelligence Hub | Live</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background: #0f172a; color: #f8fafc; }
         .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; }
-        .stat-card { transition: transform 0.3s ease; }
-        .stat-card:hover { transform: translateY(-5px); }
-        .status-y { background: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); } 
-        .status-n { background: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+        .status-y { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.5); } 
+        .status-n { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -21,64 +19,60 @@
     <header class="max-w-7xl mx-auto flex justify-between items-center mb-10">
         <div>
             <h1 class="text-3xl font-bold tracking-tight">HR Intelligence Hub</h1>
-            <p class="text-slate-400 text-sm mt-1">Real-time Quip Data Monitoring (Proxy Mode)</p>
+            <p class="text-slate-400 text-sm mt-1">Real-time Dashboard (via Google Bridge)</p>
         </div>
-        <div class="flex items-center gap-4">
-            <div id="syncStatus" class="px-4 py-2 rounded-full bg-slate-800 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                <span id="statusDot" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Initializing...
-            </div>
-            <button onclick="fetchQuipData()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-lg transition-all">Refresh Sync</button>
+        <div id="syncStatus" class="px-4 py-2 rounded-full bg-slate-800 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Initializing...
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto space-y-6">
-        
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div class="glass-card p-6 stat-card border-l-4 border-indigo-500">
-                <p class="text-slate-400 text-xs font-bold uppercase">Total Employees</p>
-                <h2 id="totalEmp" class="text-4xl font-bold mt-2">0</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
+            <div class="glass-card p-6 border-l-4 border-indigo-500">
+                <p class="text-slate-400 text-xs font-bold uppercase">Total Staff</p>
+                <h2 id="totalEmp" class="text-4xl font-bold mt-2">--</h2>
             </div>
-            <div class="glass-card p-6 stat-card border-l-4 border-emerald-500">
+            <div class="glass-card p-6 border-l-4 border-emerald-500">
                 <p class="text-slate-400 text-xs font-bold uppercase">Full Compliance</p>
-                <h2 id="fullComp" class="text-4xl font-bold mt-2 text-emerald-400">0%</h2>
+                <h2 id="fullComp" class="text-4xl font-bold mt-2 text-emerald-400">--</h2>
             </div>
-            <div class="glass-card p-6 stat-card border-l-4 border-amber-500">
+            <div class="glass-card p-6 border-l-4 border-amber-500">
                 <p class="text-slate-400 text-xs font-bold uppercase">Missing Docs</p>
-                <h2 id="missingDocs" class="text-4xl font-bold mt-2 text-amber-400">0</h2>
+                <h2 id="missingDocs" class="text-4xl font-bold mt-2 text-amber-400">--</h2>
             </div>
-            <div class="glass-card p-6 stat-card border-l-4 border-rose-500">
-                <p class="text-slate-400 text-xs font-bold uppercase">Recent Hires (Oct)</p>
-                <h2 id="octHires" class="text-4xl font-bold mt-2">0</h2>
+            <div class="glass-card p-6 border-l-4 border-rose-500">
+                <p class="text-slate-400 text-xs font-bold uppercase">Oct Hires</p>
+                <h2 id="octHires" class="text-4xl font-bold mt-2">--</h2>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="glass-card p-6 lg:col-span-2">
-                <h3 class="font-bold mb-6 italic">Hiring Trend Analysis</h3>
-                <div class="h-[300px]"><canvas id="hiringChart"></canvas></div>
+            <div class="glass-card p-6 lg:col-span-2 min-h-[350px]">
+                <h3 class="font-bold mb-6 italic">Hiring Trend (Per Month)</h3>
+                <canvas id="hiringChart"></canvas>
             </div>
-            <div class="glass-card p-6">
-                <h3 class="font-bold mb-6 italic">Documents Gap Analysis</h3>
-                <div class="h-[300px]"><canvas id="docsChart"></canvas></div>
+            <div class="glass-card p-6 min-h-[350px]">
+                <h3 class="font-bold mb-6 italic">Documents Status</h3>
+                <canvas id="docsChart"></canvas>
             </div>
         </div>
 
         <div class="glass-card overflow-hidden">
-            <div class="p-6 border-b border-white/5 flex flex-wrap justify-between items-center gap-4">
-                <h3 class="font-bold italic">Compliance Register</h3>
-                <input type="text" id="hrSearch" onkeyup="renderTable()" placeholder="Search Name or ID..." class="bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-indigo-500 w-full md:w-64">
+            <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                <h3 class="font-bold">Staff Compliance Register</h3>
+                <input type="text" id="hrSearch" onkeyup="renderTable()" placeholder="Filter by name..." class="bg-slate-900 border border-white/10 rounded-lg px-4 py-1 text-sm outline-none focus:border-indigo-500">
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-slate-800/50 text-slate-400 text-[10px] uppercase font-bold">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-800 text-slate-400 text-[10px] uppercase">
                         <tr>
-                            <th class="p-4">Employee Name</th>
-                            <th class="p-4 text-center">التخرج</th>
-                            <th class="p-4 text-center">الجيش</th>
-                            <th class="p-4 text-center">الميلاد</th>
-                            <th class="p-4 text-center">البطاقة</th>
-                            <th class="p-4 text-center">فيش</th>
-                            <th class="p-4">DOJ</th>
+                            <th class="p-4">Name</th>
+                            <th class="p-4 text-center">Grad</th>
+                            <th class="p-4 text-center">Army</th>
+                            <th class="p-4 text-center">Birth</th>
+                            <th class="p-4 text-center">ID</th>
+                            <th class="p-4 text-center">Criminal</th>
+                            <th class="p-4">Hired At</th>
                         </tr>
                     </thead>
                     <tbody id="hrTableBody" class="text-sm divide-y divide-white/5"></tbody>
@@ -88,120 +82,81 @@
     </main>
 
     <script>
-        const CONFIG = {
-            THREAD_ID: "Nz6UAwfNInnL",
-            TOKEN: "YkZTOU1BUUhCWEw=|1806654748|YWJWPlPHqUHbA3tFg+m08QaCwgtMo8xBzIxuUHq/Mro=",
-            BASE_URL: "https://quip-amazon.com/1/threads/"
-        };
-
+        const BRIDGE_URL = "https://script.google.com/macros/s/AKfycbzletEVPyOOMxMlhppEQfsHw8csPWjKKYLKPT8BhDySpBo-IpUnkzpfREUYN7TmZQfEdQ/exec";
         let employees = [];
         let charts = {};
 
         async function fetchQuipData() {
             const statusLabel = document.getElementById('syncStatus');
-            const statusDot = document.getElementById('statusDot');
-            
-            statusLabel.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Syncing via Proxy...';
-
-            // استخدام AllOrigins كبروكسي لتخطي الـ CORS
-            const targetUrl = CONFIG.BASE_URL + CONFIG.THREAD_ID;
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&timestamp=${new Date().getTime()}`;
-
             try {
-                const response = await fetch(proxyUrl, {
-                    headers: {
-                        'Authorization': `Bearer ${CONFIG.TOKEN}`
-                    }
-                });
+                const response = await fetch(BRIDGE_URL);
+                const quipData = await response.json();
                 
-                const responseData = await response.json();
-                // AllOrigins بيحط الداتا الأصلية في حقل اسمه contents وبيحولها لـ String
-                const quipData = JSON.parse(responseData.contents);
-                
-                if (!quipData.html) {
-                    throw new Error("No HTML content found in Quip response");
-                }
-
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(quipData.html, 'text/html');
-                const rows = Array.from(doc.querySelectorAll('tr')).slice(1); 
+                const rows = Array.from(doc.querySelectorAll('tr')).slice(1);
 
                 employees = rows.map(row => {
-                    const cells = Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim().toLowerCase());
+                    const cells = Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim());
+                    if (cells.length < 5) return null;
                     return {
-                        psoft: cells[0] || "",
                         amzId: cells[1] || "",
-                        name: cells[2] || "Unknown",
+                        name: cells[2] || "N/A",
                         doj: cells[3] || "",
-                        grad: cells[4] === 'y',
-                        army: cells[5] === 'y',
-                        birth: cells[6] === 'y',
-                        idCard: cells[7] === 'y',
-                        fish: cells[8] === 'y'
+                        grad: cells[4]?.toUpperCase() === 'Y',
+                        army: cells[5]?.toUpperCase() === 'Y',
+                        birth: cells[6]?.toUpperCase() === 'Y',
+                        idCard: cells[7]?.toUpperCase() === 'Y',
+                        fish: cells[8]?.toUpperCase() === 'Y'
                     };
-                }).filter(e => e.name && e.name !== 'unknown'); 
+                }).filter(e => e && e.name !== "N/A" && e.name.toLowerCase() !== 'name');
 
-                processStats();
-                statusLabel.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Connected & Live';
+                updateStats();
+                statusLabel.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Live from Quip';
             } catch (err) {
-                console.error("Fetch Error:", err);
-                statusLabel.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span> Connection Failed';
-                alert("Check your VPN or Quip Token. CORS Proxy might be throttled.");
+                console.error(err);
+                statusLabel.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span> Sync Failed';
             }
         }
 
-        function processStats() {
+        function updateStats() {
             const total = employees.length;
             const fullComp = employees.filter(e => e.grad && e.army && e.birth && e.idCard && e.fish).length;
-            const octHires = employees.filter(e => e.doj && e.doj.includes('oct')).length;
+            const octCount = employees.filter(e => e.doj.toLowerCase().includes('oct')).length;
             
-            // حساب إجمالي النواقص (كم ورقة ناقصة عند الكل)
-            let missingCount = 0;
+            let missingTotal = 0;
             employees.forEach(e => {
-                if(!e.grad) missingCount++;
-                if(!e.army) missingCount++;
-                if(!e.birth) missingCount++;
-                if(!e.idCard) missingCount++;
-                if(!e.fish) missingCount++;
+                if(!e.grad) missingTotal++; if(!e.army) missingTotal++;
+                if(!e.birth) missingTotal++; if(!e.idCard) missingTotal++;
+                if(!e.fish) missingTotal++;
             });
 
             document.getElementById('totalEmp').innerText = total;
             document.getElementById('fullComp').innerText = total > 0 ? Math.round((fullComp/total)*100) + "%" : "0%";
-            document.getElementById('missingDocs').innerText = missingCount;
-            document.getElementById('octHires').innerText = octHires;
+            document.getElementById('missingDocs').innerText = missingTotal;
+            document.getElementById('octHires').innerText = octCount;
 
             renderTable();
-            updateCharts();
+            renderCharts();
         }
 
-        function updateCharts() {
+        function renderCharts() {
+            // Trend Chart
             const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            const monthlyData = Array(12).fill(0);
-            employees.forEach(e => {
-                const mIdx = months.findIndex(m => e.doj && e.doj.toLowerCase().includes(m.toLowerCase()));
-                if(mIdx !== -1) monthlyData[mIdx]++;
-            });
+            const monthlyData = months.map(m => employees.filter(e => e.doj.toLowerCase().includes(m.toLowerCase())).length);
 
             if(charts.hiring) charts.hiring.destroy();
             charts.hiring = new Chart(document.getElementById('hiringChart'), {
-                type: 'bar',
+                type: 'line',
                 data: {
                     labels: months,
-                    datasets: [{ 
-                        label: 'Hires', 
-                        data: monthlyData, 
-                        backgroundColor: 'rgba(99, 102, 241, 0.8)',
-                        borderRadius: 8
-                    }]
+                    datasets: [{ label: 'New Hires', data: monthlyData, borderColor: '#6366f1', tension: 0.4, fill: true, backgroundColor: 'rgba(99, 102, 241, 0.1)' }]
                 },
-                options: { 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { display: false } },
-                    scales: { y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } } }
-                }
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } } } }
             });
 
-            const docsData = [
+            // Docs Donut
+            const docsCount = [
                 employees.filter(e => !e.grad).length,
                 employees.filter(e => !e.army).length,
                 employees.filter(e => !e.birth).length,
@@ -213,32 +168,27 @@
             charts.docs = new Chart(document.getElementById('docsChart'), {
                 type: 'doughnut',
                 data: {
-                    labels: ['تخرج', 'جيش', 'ميلاد', 'بطاقة', 'فيش'],
-                    datasets: [{ data: docsData, backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#a855f7','#ec4899'], borderWeight: 0 }]
+                    labels: ['Grad', 'Army', 'Birth', 'ID', 'Criminal'],
+                    datasets: [{ data: docsCount, backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#a855f7','#ec4899'], borderWeight: 0 }]
                 },
-                options: { 
-                    maintainAspectRatio: false, 
-                    cutout: '70%',
-                    plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc', padding: 20, usePointStyle: true } } }
-                }
+                options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } } }
             });
         }
 
         function renderTable() {
-            const search = document.getElementById('hrSearch').value.toLowerCase();
+            const term = document.getElementById('hrSearch').value.toLowerCase();
             const body = document.getElementById('hrTableBody');
-            
             body.innerHTML = employees
-                .filter(e => e.name.toLowerCase().includes(search) || e.amzId.toLowerCase().includes(search))
+                .filter(e => e.name.toLowerCase().includes(term))
                 .map(e => `
-                    <tr class="hover:bg-white/5 transition-all">
-                        <td class="p-4 font-semibold">${e.name} <span class="block text-[10px] text-slate-500 uppercase font-mono">${e.amzId}</span></td>
-                        <td class="p-4 text-center"><span class="inline-block w-3 h-3 rounded-full ${e.grad ? 'status-y' : 'status-n'}"></span></td>
-                        <td class="p-4 text-center"><span class="inline-block w-3 h-3 rounded-full ${e.army ? 'status-y' : 'status-n'}"></span></td>
-                        <td class="p-4 text-center"><span class="inline-block w-3 h-3 rounded-full ${e.birth ? 'status-y' : 'status-n'}"></span></td>
-                        <td class="p-4 text-center"><span class="inline-block w-3 h-3 rounded-full ${e.idCard ? 'status-y' : 'status-n'}"></span></td>
-                        <td class="p-4 text-center"><span class="inline-block w-3 h-3 rounded-full ${e.fish ? 'status-y' : 'status-n'}"></span></td>
-                        <td class="p-4 text-[11px] font-mono text-slate-400 uppercase">${e.doj}</td>
+                    <tr>
+                        <td class="p-4"><b>${e.name}</b><br><span class="text-[10px] text-slate-500">${e.amzId}</span></td>
+                        <td class="p-4 text-center"><div class="w-3 h-3 mx-auto rounded-full ${e.grad?'status-y':'status-n'}"></div></td>
+                        <td class="p-4 text-center"><div class="w-3 h-3 mx-auto rounded-full ${e.army?'status-y':'status-n'}"></div></td>
+                        <td class="p-4 text-center"><div class="w-3 h-3 mx-auto rounded-full ${e.birth?'status-y':'status-n'}"></div></td>
+                        <td class="p-4 text-center"><div class="w-3 h-3 mx-auto rounded-full ${e.idCard?'status-y':'status-n'}"></div></td>
+                        <td class="p-4 text-center"><div class="w-3 h-3 mx-auto rounded-full ${e.fish?'status-y':'status-n'}"></div></td>
+                        <td class="p-4 font-mono text-xs">${e.doj}</td>
                     </tr>
                 `).join('');
         }
