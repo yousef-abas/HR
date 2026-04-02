@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HR Compliance | Quip Live</title>
+    <title>HR Compliance | Quip Live Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -12,8 +12,8 @@
         .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; }
         .stat-card { transition: transform 0.3s ease; }
         .stat-card:hover { transform: translateY(-5px); }
-        .status-y { background: #10b981; } /* Green */
-        .status-n { background: #ef4444; } /* Red */
+        .status-y { background: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); } 
+        .status-n { background: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -21,11 +21,11 @@
     <header class="max-w-7xl mx-auto flex justify-between items-center mb-10">
         <div>
             <h1 class="text-3xl font-bold tracking-tight">HR Intelligence Hub</h1>
-            <p class="text-slate-400 text-sm mt-1">Real-time Quip Data Monitoring</p>
+            <p class="text-slate-400 text-sm mt-1">Real-time Quip Data Monitoring (Proxy Mode)</p>
         </div>
         <div class="flex items-center gap-4">
             <div id="syncStatus" class="px-4 py-2 rounded-full bg-slate-800 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Connected to Quip
+                <span id="statusDot" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Initializing...
             </div>
             <button onclick="fetchQuipData()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-lg transition-all">Refresh Sync</button>
         </div>
@@ -54,11 +54,11 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="glass-card p-6 lg:col-span-2">
-                <h3 class="font-bold mb-6">Hiring Trend Analysis (DOJ)</h3>
+                <h3 class="font-bold mb-6 italic">Hiring Trend Analysis</h3>
                 <div class="h-[300px]"><canvas id="hiringChart"></canvas></div>
             </div>
             <div class="glass-card p-6">
-                <h3 class="font-bold mb-6">Documents Gap Analysis</h3>
+                <h3 class="font-bold mb-6 italic">Documents Gap Analysis</h3>
                 <div class="h-[300px]"><canvas id="docsChart"></canvas></div>
             </div>
         </div>
@@ -91,57 +91,83 @@
         const CONFIG = {
             THREAD_ID: "Nz6UAwfNInnL",
             TOKEN: "YkZTOU1BUUhCWEw=|1806654748|YWJWPlPHqUHbA3tFg+m08QaCwgtMo8xBzIxuUHq/Mro=",
-            BASE_URL: "https://platform.quip-amazon.com/1/threads/"
+            BASE_URL: "https://quip-amazon.com/1/threads/"
         };
 
         let employees = [];
         let charts = {};
 
         async function fetchQuipData() {
-            document.getElementById('syncStatus').innerText = "🔄 Syncing...";
+            const statusLabel = document.getElementById('syncStatus');
+            const statusDot = document.getElementById('statusDot');
+            
+            statusLabel.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Syncing via Proxy...';
+
+            // استخدام AllOrigins كبروكسي لتخطي الـ CORS
+            const targetUrl = CONFIG.BASE_URL + CONFIG.THREAD_ID;
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&timestamp=${new Date().getTime()}`;
+
             try {
-                const response = await fetch(CONFIG.BASE_URL + CONFIG.THREAD_ID, {
-                    headers: { 'Authorization': `Bearer ${CONFIG.TOKEN}` }
+                const response = await fetch(proxyUrl, {
+                    headers: {
+                        'Authorization': `Bearer ${CONFIG.TOKEN}`
+                    }
                 });
-                const data = await response.json();
                 
-                // Parser for Quip HTML Table
+                const responseData = await response.json();
+                // AllOrigins بيحط الداتا الأصلية في حقل اسمه contents وبيحولها لـ String
+                const quipData = JSON.parse(responseData.contents);
+                
+                if (!quipData.html) {
+                    throw new Error("No HTML content found in Quip response");
+                }
+
                 const parser = new DOMParser();
-                const doc = parser.parseFromString(data.html, 'text/html');
-                const rows = Array.from(doc.querySelectorAll('tr')).slice(1); // Skip header
+                const doc = parser.parseFromString(quipData.html, 'text/html');
+                const rows = Array.from(doc.querySelectorAll('tr')).slice(1); 
 
                 employees = rows.map(row => {
                     const cells = Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim().toLowerCase());
                     return {
-                        psoft: cells[0],
-                        amzId: cells[1],
-                        name: cells[2],
-                        doj: cells[3],
+                        psoft: cells[0] || "",
+                        amzId: cells[1] || "",
+                        name: cells[2] || "Unknown",
+                        doj: cells[3] || "",
                         grad: cells[4] === 'y',
                         army: cells[5] === 'y',
                         birth: cells[6] === 'y',
                         idCard: cells[7] === 'y',
                         fish: cells[8] === 'y'
                     };
-                }).filter(e => e.name); // Clean empty rows
+                }).filter(e => e.name && e.name !== 'unknown'); 
 
                 processStats();
-                document.getElementById('syncStatus').innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Live Data';
+                statusLabel.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Connected & Live';
             } catch (err) {
-                console.error(err);
-                document.getElementById('syncStatus').innerText = "⚠️ Connection Failed";
+                console.error("Fetch Error:", err);
+                statusLabel.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span> Connection Failed';
+                alert("Check your VPN or Quip Token. CORS Proxy might be throttled.");
             }
         }
 
         function processStats() {
             const total = employees.length;
             const fullComp = employees.filter(e => e.grad && e.army && e.birth && e.idCard && e.fish).length;
-            
-            // Oct Hires Logic
             const octHires = employees.filter(e => e.doj && e.doj.includes('oct')).length;
+            
+            // حساب إجمالي النواقص (كم ورقة ناقصة عند الكل)
+            let missingCount = 0;
+            employees.forEach(e => {
+                if(!e.grad) missingCount++;
+                if(!e.army) missingCount++;
+                if(!e.birth) missingCount++;
+                if(!e.idCard) missingCount++;
+                if(!e.fish) missingCount++;
+            });
 
             document.getElementById('totalEmp').innerText = total;
-            document.getElementById('fullComp').innerText = Math.round((fullComp/total)*100) + "%";
+            document.getElementById('fullComp').innerText = total > 0 ? Math.round((fullComp/total)*100) + "%" : "0%";
+            document.getElementById('missingDocs').innerText = missingCount;
             document.getElementById('octHires').innerText = octHires;
 
             renderTable();
@@ -149,7 +175,6 @@
         }
 
         function updateCharts() {
-            // Hiring Trend Analysis
             const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
             const monthlyData = Array(12).fill(0);
             employees.forEach(e => {
@@ -162,12 +187,20 @@
                 type: 'bar',
                 data: {
                     labels: months,
-                    datasets: [{ label: 'Hires per Month', data: monthlyData, backgroundColor: '#6366f1' }]
+                    datasets: [{ 
+                        label: 'Hires', 
+                        data: monthlyData, 
+                        backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                        borderRadius: 8
+                    }]
                 },
-                options: { maintainAspectRatio: false, color: '#94a3b8' }
+                options: { 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    scales: { y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } } }
+                }
             });
 
-            // Missing Docs Counts
             const docsData = [
                 employees.filter(e => !e.grad).length,
                 employees.filter(e => !e.army).length,
@@ -181,9 +214,13 @@
                 type: 'doughnut',
                 data: {
                     labels: ['تخرج', 'جيش', 'ميلاد', 'بطاقة', 'فيش'],
-                    datasets: [{ data: docsData, backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#a855f7','#ec4899'] }]
+                    datasets: [{ data: docsData, backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#a855f7','#ec4899'], borderWeight: 0 }]
                 },
-                options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+                options: { 
+                    maintainAspectRatio: false, 
+                    cutout: '70%',
+                    plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc', padding: 20, usePointStyle: true } } }
+                }
             });
         }
 
@@ -196,12 +233,12 @@
                 .map(e => `
                     <tr class="hover:bg-white/5 transition-all">
                         <td class="p-4 font-semibold">${e.name} <span class="block text-[10px] text-slate-500 uppercase font-mono">${e.amzId}</span></td>
-                        <td class="p-4 text-center"><span class="inline-block w-3 h-3 rounded-full ${e.grad ? 'status-y' : 'status-n'} shadow-sm"></span></td>
-                        <td class="p-4 text-center"><span class="inline-block w-3 h-3 rounded-full ${e.army ? 'status-y' : 'status-n'} shadow-sm"></span></td>
-                        <td class="p-4 text-center"><span class="inline-block w-3 h-3 rounded-full ${e.birth ? 'status-y' : 'status-n'} shadow-sm"></span></td>
-                        <td class="p-4 text-center"><span class="inline-block w-3 h-3 rounded-full ${e.idCard ? 'status-y' : 'status-n'} shadow-sm"></span></td>
-                        <td class="p-4 text-center"><span class="inline-block w-3 h-3 rounded-full ${e.fish ? 'status-y' : 'status-n'} shadow-sm"></span></td>
-                        <td class="p-4 text-[10px] font-mono text-slate-400">${e.doj}</td>
+                        <td class="p-4 text-center"><span class="inline-block w-3 h-3 rounded-full ${e.grad ? 'status-y' : 'status-n'}"></span></td>
+                        <td class="p-4 text-center"><span class="inline-block w-3 h-3 rounded-full ${e.army ? 'status-y' : 'status-n'}"></span></td>
+                        <td class="p-4 text-center"><span class="inline-block w-3 h-3 rounded-full ${e.birth ? 'status-y' : 'status-n'}"></span></td>
+                        <td class="p-4 text-center"><span class="inline-block w-3 h-3 rounded-full ${e.idCard ? 'status-y' : 'status-n'}"></span></td>
+                        <td class="p-4 text-center"><span class="inline-block w-3 h-3 rounded-full ${e.fish ? 'status-y' : 'status-n'}"></span></td>
+                        <td class="p-4 text-[11px] font-mono text-slate-400 uppercase">${e.doj}</td>
                     </tr>
                 `).join('');
         }
