@@ -99,15 +99,19 @@
                 employees = rows.map(row => {
                     const cells = Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim());
                     if (cells.length < 5) return null;
+                    
+                    // تحسين منطق قراءة الـ Y و N ليكون أكثر مرونة
+                    const check = (val) => val && val.toLowerCase() === 'y';
+
                     return {
                         amzId: cells[1] || "",
                         name: cells[2] || "N/A",
                         doj: cells[3] || "",
-                        grad: cells[4]?.toUpperCase() === 'Y',
-                        army: cells[5]?.toUpperCase() === 'Y',
-                        birth: cells[6]?.toUpperCase() === 'Y',
-                        idCard: cells[7]?.toUpperCase() === 'Y',
-                        fish: cells[8]?.toUpperCase() === 'Y'
+                        grad: check(cells[4]),
+                        army: check(cells[5]),
+                        birth: check(cells[6]),
+                        idCard: check(cells[7]),
+                        fish: check(cells[8])
                     };
                 }).filter(e => e && e.name !== "N/A" && e.name.toLowerCase() !== 'name');
 
@@ -126,8 +130,10 @@
             
             let missingTotal = 0;
             employees.forEach(e => {
-                if(!e.grad) missingTotal++; if(!e.army) missingTotal++;
-                if(!e.birth) missingTotal++; if(!e.idCard) missingTotal++;
+                if(!e.grad) missingTotal++; 
+                if(!e.army) missingTotal++;
+                if(!e.birth) missingTotal++; 
+                if(!e.idCard) missingTotal++;
                 if(!e.fish) missingTotal++;
             });
 
@@ -141,7 +147,6 @@
         }
 
         function renderCharts() {
-            // Trend Chart
             const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
             const monthlyData = months.map(m => employees.filter(e => e.doj.toLowerCase().includes(m.toLowerCase())).length);
 
@@ -150,12 +155,22 @@
                 type: 'line',
                 data: {
                     labels: months,
-                    datasets: [{ label: 'New Hires', data: monthlyData, borderColor: '#6366f1', tension: 0.4, fill: true, backgroundColor: 'rgba(99, 102, 241, 0.1)' }]
+                    datasets: [{ 
+                        label: 'New Hires', 
+                        data: monthlyData, 
+                        borderColor: '#6366f1', 
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        tension: 0.4, 
+                        fill: true 
+                    }]
                 },
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } } } }
+                options: { 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } } }
+                }
             });
 
-            // Docs Donut
             const docsCount = [
                 employees.filter(e => !e.grad).length,
                 employees.filter(e => !e.army).length,
@@ -171,7 +186,11 @@
                     labels: ['Grad', 'Army', 'Birth', 'ID', 'Criminal'],
                     datasets: [{ data: docsCount, backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#a855f7','#ec4899'], borderWeight: 0 }]
                 },
-                options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } } }
+                options: { 
+                    maintainAspectRatio: false, 
+                    cutout: '70%', 
+                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } } 
+                }
             });
         }
 
