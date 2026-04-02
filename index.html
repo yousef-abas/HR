@@ -3,214 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Operations Hub | Live Dashboard</title>
+    <title>CCR Operations Dashboard | Live</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
-        .glass-card { background: white; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        .stat-card { background: white; padding: 24px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
         .status-badge { padding: 4px 12px; border-radius: 99px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
-        .bg-done { background: #dcfce7; color: #15803d; }
-        .bg-wip { background: #fef9c3; color: #a16207; }
-        .tab-btn { padding: 12px 24px; font-weight: 600; color: #64748b; border-bottom: 2px solid transparent; transition: 0.3s; }
-        .tab-btn.active { color: #4f46e5; border-bottom-color: #4f46e5; background: white; border-radius: 12px 12px 0 0; }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
-    <header class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div>
-            <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Operations Intelligence</h1>
-            <p class="text-slate-500">Real-time Ticket Tracking & Analysis</p>
-        </div>
-        <div id="syncStatus" class="px-4 py-2 rounded-full bg-white border font-bold text-xs shadow-sm uppercase tracking-widest text-slate-400">
-            Connecting...
-        </div>
-    </header>
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-10 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-900 tracking-tight">CCR Operations Hub</h1>
+                <p class="text-slate-500">Real-time Analysis for CCR-BC-FBA-EG</p>
+            </div>
+            <div id="syncStatus" class="px-4 py-2 rounded-full bg-white border font-bold text-xs shadow-sm uppercase tracking-widest text-slate-400">
+                Connecting to Quip...
+            </div>
+        </header>
 
-    <div class="max-w-7xl mx-auto mb-6 flex gap-2 border-b border-slate-200">
-        <button onclick="switchTab('stats')" id="tab-stats" class="tab-btn active">Analytics View</button>
-        <button onclick="switchTab('table')" id="tab-table" class="tab-btn">Data Explorer</button>
-    </div>
-
-    <main id="stats-section" class="max-w-7xl mx-auto space-y-6">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div class="glass-card p-6 border-l-4 border-indigo-500">
-                <p class="text-xs font-bold text-slate-400 uppercase">Total Tickets</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="stat-card border-l-4 border-indigo-500">
+                <p class="text-xs font-bold text-slate-400 uppercase">Total ASINs</p>
                 <h2 id="totalCount" class="text-4xl font-bold mt-2 text-slate-900">--</h2>
             </div>
-            <div class="glass-card p-6 border-l-4 border-emerald-500">
-                <p class="text-xs font-bold text-slate-400 uppercase">Reversal Rate</p>
-                <h2 id="revRate" class="text-4xl font-bold mt-2 text-emerald-600">--</h2>
+            <div class="stat-card border-l-4 border-emerald-500">
+                <p class="text-xs font-bold text-slate-400 uppercase">Resolved</p>
+                <h2 id="doneCount" class="text-4xl font-bold mt-2 text-emerald-600">--</h2>
             </div>
-            <div class="glass-card p-6 border-l-4 border-amber-500">
-                <p class="text-xs font-bold text-slate-400 uppercase">Active WIP</p>
+            <div class="stat-card border-l-4 border-amber-500">
+                <p class="text-xs font-bold text-slate-400 uppercase">In Progress (WIP)</p>
                 <h2 id="wipCount" class="text-4xl font-bold mt-2 text-amber-600">--</h2>
             </div>
-            <div class="glass-card p-6 border-l-4 border-rose-500">
-                <p class="text-xs font-bold text-slate-400 uppercase">Defects</p>
-                <h2 id="defects" class="text-4xl font-bold mt-2 text-rose-600">--</h2>
+            <div class="stat-card border-l-4 border-rose-500">
+                <p class="text-xs font-bold text-slate-400 uppercase">Reversals Found</p>
+                <h2 id="revCount" class="text-4xl font-bold mt-2 text-rose-600">--</h2>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="glass-card p-6 h-[400px]"><canvas id="chartInv"></canvas></div>
-            <div class="glass-card p-6 h-[400px]"><canvas id="chartStatus"></canvas></div>
-        </div>
-    </main>
-
-    <main id="table-section" class="max-w-7xl mx-auto hidden">
-        <div class="glass-card overflow-hidden">
-            <div class="p-4 bg-slate-50 border-b flex justify-between items-center">
-                <input type="text" id="search" onkeyup="filter()" placeholder="Search ASIN or Investigator..." class="w-full max-w-md p-3 rounded-xl border-none ring-1 ring-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm text-sm">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div class="stat-card h-[400px]">
+                <h3 class="text-sm font-bold text-slate-500 mb-4 uppercase">Investigator Workload</h3>
+                <canvas id="chartInv"></canvas>
             </div>
+            <div class="stat-card h-[400px]">
+                <h3 class="text-sm font-bold text-slate-500 mb-4 uppercase">Completion Status</h3>
+                <canvas id="chartStatus"></canvas>
+            </div>
+        </div>
+
+        <div class="stat-card overflow-hidden p-0">
+            <div class="p-4 bg-slate-50 border-b font-bold text-slate-700">Recent Records Captured</div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm border-separate border-spacing-0">
-                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold">
                         <tr>
-                            <th class="p-4 border-b">ASIN</th>
-                            <th class="p-4 border-b">Investigator</th>
-                            <th class="p-4 border-b">Status</th>
-                            <th class="p-4 border-b">Reversed</th>
-                            <th class="p-4 border-b">Action</th>
+                            <th class="p-4">ASIN</th>
+                            <th class="p-4">Investigator</th>
+                            <th class="p-4">Status</th>
+                            <th class="p-4">Rev</th>
                         </tr>
                     </thead>
                     <tbody id="mainTable" class="divide-y divide-slate-100"></tbody>
                 </table>
             </div>
         </div>
-    </main>
+    </div>
 
     <script>
-        // الرابط الجديد الخاص بك
-        const API_URL = "https://script.google.com/macros/s/AKfycbwWHsRftTFvi2Ca3ef1ezN--Jcz1Y-UKfQJ8O84oWGtaCO9s3ETPFBW8U1MiGKKtJI2/exec";
-        
-        let allData = [];
-        let charts = {};
+        // الرابط الجديد اللي إنت بعته
+        const API_URL = "https://script.google.com/macros/s/AKfycbyo7QU8MMTsX4e4Tq9Do2dcmTPCoc79XYhePj-td0uGEmsqv3RA2-d0uNaXV9bByLEb/exec";
+        let chartInstance1 = null;
+        let chartInstance2 = null;
 
         async function init() {
             const statusLabel = document.getElementById('syncStatus');
             try {
-                const response = await fetch(API_URL);
+                const response = await fetch(API_URL, { redirect: 'follow' });
                 const data = await response.json();
                 
-                if (!data.text) {
-                    statusLabel.innerText = "Data Empty or Error";
-                    return;
-                }
-
-                // تقسيم النص الصافي القادم من Quip إلى أسطر
-                const lines = data.text.split('\n');
-                allData = [];
-
-                lines.forEach(line => {
-                    // البحث عن ASIN (B0 متبوعة بـ 8 رموز)
-                    const asinMatch = line.match(/B0[A-Z0-9]{8}/i);
-                    
-                    if (asinMatch) {
-                        const asin = asinMatch[0].toUpperCase();
-                        
-                        // استخراج المحقق (بناءً على قائمة الأسماء)
-                        const investigator = ["Yousef", "Hayam", "Samy", "Mohamed"].find(name => 
-                            line.toLowerCase().includes(name.toLowerCase())
-                        ) || "N/A";
-                        
-                        // استخراج الحالة
-                        const status = /Done|Resolved/i.test(line) ? "Done" : "WIP";
-                        
-                        // فحص الـ Reversal
-                        const isRev = /Yes|Rev/i.test(line) ? 'Yes' : 'No';
-
-                        allData.push({
-                            asin: asin,
-                            inv: investigator,
-                            status: status,
-                            rev: isRev,
-                            link: "#" 
-                        });
-                    }
-                });
-
-                if (allData.length > 0) {
-                    updateDashboard();
-                    statusLabel.innerText = `● LIVE: ${allData.length} RECORDS`;
+                if (data.text) {
+                    processData(data.text);
+                    statusLabel.innerText = "● Live: Data Synced";
                     statusLabel.className = "px-4 py-2 rounded-full bg-emerald-100 text-emerald-600 font-bold text-xs shadow-sm uppercase tracking-widest";
-                } else {
-                    statusLabel.innerText = "No ASINs Detected";
+                } else if (data.error) {
+                    statusLabel.innerText = "Error: " + data.error;
                 }
             } catch (err) {
-                statusLabel.innerText = "Sync Failed";
+                statusLabel.innerText = "Connection Failed";
                 console.error(err);
             }
         }
 
-        function updateDashboard() {
-            document.getElementById('totalCount').innerText = allData.length;
-            const revCount = allData.filter(d => d.rev === 'Yes').length;
-            document.getElementById('revRate').innerText = allData.length > 0 ? Math.round((revCount/allData.length)*100) + "%" : "0%";
-            document.getElementById('wipCount').innerText = allData.filter(d => d.status === 'WIP').length;
-            document.getElementById('defects').innerText = revCount;
+        function processData(text) {
+            const lines = text.split('\n');
+            const records = [];
+            const investigators = ["Yousef", "Hayam", "Samy", "Mohamed"];
 
+            lines.forEach(line => {
+                const asinMatch = line.match(/B0[A-Z0-9]{8}/i);
+                if (asinMatch) {
+                    const inv = investigators.find(n => line.toLowerCase().includes(n.toLowerCase())) || "N/A";
+                    const isDone = /Done|Resolved/i.test(line);
+                    const isRev = /Yes|Rev/i.test(line);
+                    
+                    records.push({ asin: asinMatch[0].toUpperCase(), inv, status: isDone ? 'Done' : 'WIP', rev: isRev });
+                }
+            });
+
+            renderDashboard(records);
+        }
+
+        function renderDashboard(data) {
+            const doneCount = data.filter(d => d.status === 'Done').length;
+            const revCount = data.filter(d => d.rev).length;
+
+            document.getElementById('totalCount').innerText = data.length;
+            document.getElementById('doneCount').innerText = doneCount;
+            document.getElementById('wipCount').innerText = data.length - doneCount;
+            document.getElementById('revCount').innerText = revCount;
+
+            // Table
             const tbody = document.getElementById('mainTable');
-            tbody.innerHTML = allData.map(d => `
-                <tr class="hover:bg-slate-50 transition border-b">
+            tbody.innerHTML = data.slice(0, 10).map(d => `
+                <tr>
                     <td class="p-4 font-bold text-indigo-600">${d.asin}</td>
-                    <td class="p-4 font-medium text-slate-700">${d.inv}</td>
-                    <td class="p-4"><span class="status-badge ${d.status === 'Done' ? 'bg-done' : 'bg-wip'}">${d.status}</span></td>
-                    <td class="p-4 font-bold ${d.rev === 'Yes' ? 'text-emerald-600' : 'text-slate-300'}">${d.rev}</td>
-                    <td class="p-4"><span class="text-slate-300">N/A</span></td>
+                    <td class="p-4">${d.inv}</td>
+                    <td class="p-4"><span class="status-badge ${d.status === 'Done' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${d.status}</span></td>
+                    <td class="p-4 font-bold ${d.rev ? 'text-rose-500' : 'text-slate-300'}">${d.rev ? 'YES' : 'NO'}</td>
                 </tr>
             `).join('');
 
-            renderCharts();
+            updateCharts(data);
         }
 
-        function renderCharts() {
-            const invs = {}; 
-            allData.forEach(d => { if(d.inv !== 'N/A') invs[d.inv] = (invs[d.inv] || 0) + 1 });
-            
-            if(charts.inv) charts.inv.destroy();
-            const ctxInv = document.getElementById('chartInv').getContext('2d');
-            charts.inv = new Chart(ctxInv, {
+        function updateCharts(data) {
+            const invCounts = {};
+            data.forEach(d => { if(d.inv !== "N/A") invCounts[d.inv] = (invCounts[d.inv] || 0) + 1 });
+
+            if(chartInstance1) chartInstance1.destroy();
+            chartInstance1 = new Chart(document.getElementById('chartInv'), {
                 type: 'bar',
-                data: { 
-                    labels: Object.keys(invs), 
-                    datasets: [{ label: 'Tickets', data: Object.values(invs), backgroundColor: '#6366f1', borderRadius: 8 }] 
+                data: {
+                    labels: Object.keys(invCounts),
+                    datasets: [{ label: 'Tickets', data: Object.values(invCounts), backgroundColor: '#6366f1', borderRadius: 8 }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                options: { responsive: true, maintainAspectRatio: false }
             });
 
-            const done = allData.filter(d => d.status === 'Done').length;
-            const wip = allData.length - done;
-            
-            if(charts.status) charts.status.destroy();
-            const ctxStatus = document.getElementById('chartStatus').getContext('2d');
-            charts.status = new Chart(ctxStatus, {
+            const done = data.filter(d => d.status === 'Done').length;
+            if(chartInstance2) chartInstance2.destroy();
+            chartInstance2 = new Chart(document.getElementById('chartStatus'), {
                 type: 'doughnut',
-                data: { 
-                    labels: ['Done', 'WIP'], 
-                    datasets: [{ data: [done, wip], backgroundColor: ['#10b981', '#f59e0b'] }] 
+                data: {
+                    labels: ['Done', 'WIP'],
+                    datasets: [{ data: [done, data.length - done], backgroundColor: ['#10b981', '#f59e0b'] }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
             });
         }
 
-        function switchTab(t) {
-            document.getElementById('stats-section').classList.toggle('hidden', t !== 'stats');
-            document.getElementById('table-section').classList.toggle('hidden', t !== 'table');
-            document.getElementById('tab-stats').classList.toggle('active', t === 'stats');
-            document.getElementById('tab-table').classList.toggle('active', t === 'table');
-        }
-
-        function filter() {
-            const q = document.getElementById('search').value.toLowerCase();
-            document.querySelectorAll('#mainTable tr').forEach(r => {
-                r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none';
-            });
-        }
-
         init();
+        // تحديث تلقائي كل 5 دقائق
+        setInterval(init, 300000);
     </script>
 </body>
 </html>
