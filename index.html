@@ -83,7 +83,8 @@
     </main>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbwB8VXX0omusH1PvnaLIvn62whEnjo8WOoFqE4GRJhvBuwtGqouPoPkMa6nfEdz2OCb/exec";
+        // الرابط الجديد اللي آخره DaY
+        const API_URL = "https://script.google.com/macros/s/AKfycbzWevuSuWsZUIItdJzUPrIG3rtTkvStUSkG3nPgqv3ftZvl_0e675CIWXhrvzr4VDaY/exec";
         
         let allData = [];
         let charts = {};
@@ -108,20 +109,16 @@
                     const rowText = row.innerText || "";
                     const cells = Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim());
                     
-                    // استخدام Regex للبحث عن الـ ASIN في كامل الصف لضمان الدقة
+                    // صائد الـ ASIN الذكي
                     const asinMatch = rowText.match(/B0[A-Z0-9]{8}/);
                     
                     if (asinMatch) {
                         const asin = asinMatch[0];
                         allData.push({
                             asin: asin,
-                            // البحث عن المحقق من القائمة المعرفة
                             inv: cells.find(c => ["Yousef", "Hayam", "Samy", "Mohamed"].some(name => c.includes(name))) || "N/A",
-                            // تحديد الحالة بناءً على وجود الكلمة في أي مكان بالخلية
                             status: cells.find(c => ["Done", "WIP", "Pending", "Resolved"].some(s => c.toUpperCase().includes(s.toUpperCase()))) || "Pending",
-                            // التحقق من وجود كلمة Yes أو Reversed
                             rev: rowText.toLowerCase().includes('yes') || rowText.toLowerCase().includes('rev') ? 'Yes' : 'No',
-                            // البحث عن أي رابط داخل الصف
                             link: row.querySelector('a') ? row.querySelector('a').href : "#"
                         });
                     }
@@ -144,12 +141,12 @@
             document.getElementById('totalCount').innerText = allData.length;
             const revCount = allData.filter(d => d.rev === 'Yes').length;
             document.getElementById('revRate').innerText = allData.length > 0 ? Math.round((revCount/allData.length)*100) + "%" : "0%";
-            document.getElementById('wipCount').innerText = allData.filter(d => d.status.toUpperCase() !== 'DONE').length;
+            document.getElementById('wipCount').innerText = allData.filter(d => !d.status.toUpperCase().includes('DONE')).length;
             document.getElementById('defects').innerText = revCount;
 
             const tbody = document.getElementById('mainTable');
             tbody.innerHTML = allData.map(d => `
-                <tr class="hover:bg-slate-50 transition">
+                <tr class="hover:bg-slate-50 transition border-b">
                     <td class="p-4 font-bold text-indigo-600">${d.asin}</td>
                     <td class="p-4 font-medium text-slate-700">${d.inv}</td>
                     <td class="p-4"><span class="status-badge ${d.status.toUpperCase().includes('DONE') ? 'bg-done' : 'bg-wip'}">${d.status}</span></td>
@@ -162,7 +159,6 @@
         }
 
         function renderCharts() {
-            // Investigator Chart
             const invs = {}; 
             allData.forEach(d => { if(d.inv !== 'N/A') invs[d.inv] = (invs[d.inv] || 0) + 1 });
             
@@ -174,10 +170,9 @@
                     labels: Object.keys(invs), 
                     datasets: [{ label: 'Workload', data: Object.values(invs), backgroundColor: '#6366f1', borderRadius: 8 }] 
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
 
-            // Status Chart
             const done = allData.filter(d => d.status.toUpperCase().includes('DONE')).length;
             const others = allData.length - done;
             
@@ -186,7 +181,7 @@
             charts.status = new Chart(ctxStatus, {
                 type: 'doughnut',
                 data: { 
-                    labels: ['Done', 'In Progress'], 
+                    labels: ['Done', 'WIP'], 
                     datasets: [{ data: [done, others], backgroundColor: ['#10b981', '#f59e0b'] }] 
                 },
                 options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
