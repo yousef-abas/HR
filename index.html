@@ -2,135 +2,143 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تحليل أداء المحققين - Professional Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investigator Analytics - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { background: #0f172a; color: #f1f5f9; font-family: 'Tajawal', sans-serif; padding: 20px; }
-        .investigator-card { background: #1e293b; border-radius: 24px; border: 1px solid #334155; transition: 0.3s; overflow: hidden; }
-        .investigator-card:hover { border-color: #3b82f6; box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
-        .stat-badge { background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; padding: 15px; text-align: center; }
-        .closure-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
-        .week-tag { font-size: 11px; background: #3b82f6; color: white; padding: 2px 8px; border-radius: 6px; font-weight: bold; }
+        body { background: #020617; color: #f8fafc; font-family: 'Tajawal', sans-serif; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px; transition: 0.3s; }
+        .glass-card:hover { border-color: #3b82f6; transform: translateY(-5px); }
+        .status-item { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 10px; border-right: 4px solid #3b82f6; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
-<body>
+<body class="p-4 md:p-10">
 
-    <header class="max-w-7xl mx-auto mb-10 flex justify-between items-end">
-        <div>
-            <h1 class="text-4xl font-black text-white italic tracking-tighter uppercase">Team <span class="text-blue-500">Performance</span></h1>
-            <p class="text-slate-500 font-bold text-xs mt-1 uppercase tracking-widest">Real-time Closure Analysis</p>
-        </div>
-        <div id="last-update" class="text-[10px] text-slate-500"></div>
-    </header>
+    <div class="max-w-7xl mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-12 border-b border-white/5 pb-8">
+            <div class="text-center md:text-right">
+                <h1 class="text-4xl font-black italic text-white tracking-tighter uppercase">Performance <span class="text-blue-500 underline decoration-blue-500/30">Analytics</span></h1>
+                <p class="text-slate-500 font-bold text-xs mt-2 tracking-[0.3em]">RE-CON & INVESTIGATION TRACKER</p>
+            </div>
+            <div id="update-tag" class="mt-4 md:mt-0 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full text-[10px] text-blue-400 font-bold">
+                جاري سحب البيانات...
+            </div>
+        </header>
 
-    <div id="grid" class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        </div>
+        <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            </div>
+    </div>
 
     <script>
+        // رابط الـ API بتاعك اللي شغال
         const API_URL = "https://script.google.com/macros/s/AKfycbwZhr5GqkTH32_xaFgjjqpWmPQc2MHHcJqyg9J2U7_X5SKDcgmG21Q0rUlp6qS5zxjG/exec";
 
         async function init() {
             try {
                 const res = await fetch(API_URL);
                 const data = await res.json();
-                const report = {};
+                const investigators = {};
 
-                // تحليل الداتا (اسم المحقق في I والحالة في J والأسبوع في B)
+                // تحليل الداتا الخام
                 data.forEach((row, index) => {
-                    if (index === 0 || !row[8]) return; 
+                    if (index === 0 || !row[8]) return; // تخطي الهيدر والصفوف الفاضية
 
                     const name = row[8].trim();
                     const status = row[9] ? row[9].trim() : "Pending";
-                    const week = row[1] ? "WK " + row[1] : "NA";
+                    const week = row[1] ? "WK " + row[1] : "N/A";
 
-                    if (!report[name]) {
-                        report[name] = { total: 0, done: 0, remain: 0, closures: {}, weekly: {} };
+                    if (!investigators[name]) {
+                        investigators[name] = { total: 0, done: 0, pending: 0, types: {}, weeks: {} };
                     }
 
-                    report[name].total++;
+                    investigators[name].total++;
+                    
                     const isDone = status.toLowerCase().includes("done") || 
                                    status.toLowerCase().includes("defect") || 
                                    status.toLowerCase().includes("wis");
 
                     if (isDone) {
-                        report[name].done++;
-                        report[name].closures[status] = (report[name].closures[status] || 0) + 1;
+                        investigators[name].done++;
+                        investigators[name].types[status] = (investigators[name].types[status] || 0) + 1;
                     } else {
-                        report[name].remain++;
+                        investigators[name].pending++;
                     }
 
-                    if (!report[name].weekly[week]) report[name].weekly[week] = { t:0, d:0 };
-                    report[name].weekly[week].t++;
-                    if (isDone) report[name].weekly[week].d++;
+                    if (!investigators[name].weeks[week]) investigators[name].weeks[week] = { t:0, d:0 };
+                    investigators[name].weeks[week].t++;
+                    if (isDone) investigators[name].weeks[week].d++;
                 });
 
                 const grid = document.getElementById('grid');
                 grid.innerHTML = "";
 
-                Object.keys(report).sort().forEach(name => {
-                    const user = report[name];
-                    let closureLines = "";
-                    Object.keys(user.closures).forEach(c => {
-                        closureLines += `<div class="closure-row"><span>${c}</span><span class="font-bold text-blue-400">${user.closures[c]}</span></div>`;
-                    });
+                Object.keys(investigators).sort().forEach(name => {
+                    const info = investigators[name];
+                    const rate = Math.round((info.done / info.total) * 100);
 
-                    let weeklyLines = "";
-                    Object.keys(user.weekly).sort().forEach(w => {
-                        weeklyLines += `
-                            <div class="flex justify-between items-center bg-black/20 p-2 rounded-lg mb-1">
-                                <span class="week-tag">${w}</span>
-                                <span class="text-[11px]">المنجز: <b class="text-emerald-400">${user.weekly[w].d}</b> من ${user.weekly[w].t}</span>
+                    let typesHtml = "";
+                    Object.keys(info.types).forEach(type => {
+                        typesHtml += `
+                            <div class="status-item mb-2 flex justify-between items-center text-xs">
+                                <span class="text-slate-400 font-bold">${type}</span>
+                                <span class="text-white font-black">${info.types[type]}</span>
                             </div>`;
                     });
 
                     grid.innerHTML += `
-                        <div class="investigator-card p-6 flex flex-col">
-                            <div class="mb-6 flex justify-between items-center">
-                                <h2 class="text-2xl font-black text-white uppercase italic">${name}</h2>
-                                <span class="text-blue-500 font-bold text-2xl">#${user.total}</span>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-3 mb-6 text-center">
-                                <div class="stat-badge border-emerald-500/20">
-                                    <span class="block text-[10px] text-emerald-500 font-bold uppercase mb-1">تم إنجازه</span>
-                                    <span class="text-2xl font-black text-emerald-400">${user.done}</span>
-                                </div>
-                                <div class="stat-badge border-amber-500/20">
-                                    <span class="block text-[10px] text-amber-500 font-bold uppercase mb-1">لسا معاه</span>
-                                    <span class="text-2xl font-black text-amber-400">${user.remain}</span>
+                        <div class="glass-card p-8 flex flex-col">
+                            <div class="flex justify-between items-start mb-6">
+                                <h2 class="text-2xl font-black text-white italic">${name}</h2>
+                                <div class="text-center">
+                                    <span class="text-blue-500 font-black text-3xl">${info.total}</span>
+                                    <p class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Total Assigned</p>
                                 </div>
                             </div>
 
-                            <div class="space-y-6">
+                            <div class="grid grid-cols-2 gap-4 mb-8">
+                                <div class="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-3xl text-center">
+                                    <p class="text-[10px] text-emerald-500 font-bold mb-1 uppercase italic">Completed</p>
+                                    <span class="text-2xl font-black text-emerald-400">${info.done}</span>
+                                </div>
+                                <div class="bg-amber-500/10 border border-amber-500/20 p-4 rounded-3xl text-center">
+                                    <p class="text-[10px] text-amber-500 font-bold mb-1 uppercase italic">In Progress</p>
+                                    <span class="text-2xl font-black text-amber-400">${info.pending}</span>
+                                </div>
+                            </div>
+
+                            <div class="flex-grow space-y-6">
                                 <div>
-                                    <p class="text-[10px] text-slate-500 font-bold mb-3 uppercase tracking-widest border-r-2 border-blue-500 pr-2">تحليل القفلة (Closure)</p>
-                                    <div class="max-h-[120px] overflow-y-auto pr-2 custom-scroll">${closureLines || "لا يوجد بيانات مقفلة"}</div>
-                                </div>
-                                <div>
-                                    <p class="text-[10px] text-slate-500 font-bold mb-3 uppercase tracking-widest border-r-2 border-emerald-500 pr-2">الأداء الأسبوعي</p>
-                                    <div class="max-h-[120px] overflow-y-auto pr-2 custom-scroll">${weeklyLines}</div>
+                                    <p class="text-[11px] text-blue-400 font-black mb-3 uppercase tracking-[0.2em] border-r-2 border-blue-500 pr-2">Closure Breakdown</p>
+                                    <div class="max-h-[150px] overflow-y-auto pr-2 custom-scroll">
+                                        ${typesHtml || '<p class="text-[11px] text-slate-600 italic">No detailed statuses found</p>'}
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="mt-auto pt-6 border-t border-white/5 text-center">
-                                <div class="text-[10px] text-slate-500 font-bold mb-1 uppercase">Achievement Rate</div>
-                                <div class="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                                    <div class="bg-blue-500 h-full" style="width: ${Math.round((user.done/user.total)*100)}%"></div>
+                            <div class="mt-8 pt-6 border-t border-white/5">
+                                <div class="flex justify-between items-end mb-2">
+                                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest italic">Achievement Rate</span>
+                                    <span class="text-sm font-black text-blue-400">${rate}%</span>
                                 </div>
-                                <div class="text-xs font-black mt-2 text-blue-400">${Math.round((user.done/user.total)*100)}%</div>
+                                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-blue-600 h-full transition-all duration-1000 shadow-[0_0_10px_#2563eb]" style="width: ${rate}%"></div>
+                                </div>
                             </div>
                         </div>`;
                 });
-                document.getElementById('last-update').innerText = "Last Updated: " + new Date().toLocaleTimeString();
+                document.getElementById('update-tag').innerText = "Last Updated: " + new Date().toLocaleTimeString();
 
             } catch (e) {
-                document.getElementById('grid').innerHTML = "<div class='text-red-500'>Error processing data. Check console.</div>";
+                console.error(e);
+                document.getElementById('grid').innerHTML = "<div class='col-span-full text-center text-red-500 font-bold uppercase'>Error connecting to API... Check Console.</div>";
             }
         }
 
         init();
-        setInterval(init, 300000); // تحديث كل 5 دقائق
+        setInterval(init, 300000); // تحديث تلقائي كل 5 دقائق
     </script>
 </body>
 </html>
