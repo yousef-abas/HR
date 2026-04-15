@@ -2,90 +2,73 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Diagnostic Dashboard</title>
+    <title>Investigator Hub | Youssef Abbas</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;900&display=swap" rel="stylesheet">
     <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; }
-        .error-box { background: rgba(220, 38, 38, 0.2); border: 1px solid #dc2626; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-        .card { background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155; }
+        body { font-family: 'Outfit', sans-serif; background: #020617; color: white; }
+        .card { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; transition: 0.3s; }
+        .card:hover { transform: translateY(-5px); border-color: #3b82f6; }
     </style>
 </head>
 <body class="p-8">
 
-    <h1 class="text-3xl font-bold mb-6">System <span class="text-blue-500">Check</span></h1>
-    
-    <div id="status-panel" class="mb-8 p-4 bg-slate-800 rounded-xl border border-slate-700">
-        <p id="step1" class="text-slate-500">○ Connecting to Google Cloud...</p>
-        <p id="step2" class="text-slate-500">○ Checking Data Format...</p>
-        <p id="step3" class="text-slate-500">○ Rendering Cards...</p>
+    <header class="max-w-6xl mx-auto mb-12 flex justify-between items-center">
+        <h1 class="text-4xl font-black">TEAM <span class="text-blue-500">CARDS</span></h1>
+        <button onclick="location.reload()" class="bg-blue-600 px-6 py-2 rounded-xl font-bold">Sync Data</button>
+    </header>
+
+    <div id="grid" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="col-span-full text-center py-20 text-slate-500 animate-pulse">Scanning Weeks...</div>
     </div>
 
-    <div id="error-display"></div>
-    <div id="cardsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
-
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyZa1tTyHrAwl_eFWqx5kfI0or275ZAWF79w3FTTcGWMrRBioXoBfPOaLSuMYxsMaWB/exec";
+        // ضع رابط الـ EXEC الجديد هنا
+        const API_URL = "ضع_الرابط_الجديد_هنا";
 
-        async function startAnalysis() {
-            const s1 = document.getElementById('step1');
-            const s2 = document.getElementById('step2');
-            const s3 = document.getElementById('step3');
-            const errDiv = document.getElementById('error-display');
-
+        async function load() {
+            const grid = document.getElementById('grid');
             try {
-                // الخطوة 1: محاولة جلب البيانات
-                const response = await fetch(API_URL);
-                if (!response.ok) throw new Error("Google Link is Private or Offline");
+                const res = await fetch(API_URL);
+                const data = await res.json();
                 
-                s1.innerText = "● Connected to Google Cloud! (OK)";
-                s1.classList.add('text-green-500');
+                if (data.length === 0) { grid.innerHTML = "No data found in WK sheets."; return; }
 
-                const data = await response.json();
-                console.log("Raw Data:", data);
-
-                // الخطوة 2: فحص شكل البيانات
-                if (!Array.isArray(data) || data.length === 0) {
-                    throw new Error("Connected, but Sheet is EMPTY or format is wrong.");
-                }
-
-                s2.innerText = `● Data Found: ${data.length} rows detected! (OK)`;
-                s2.classList.add('text-green-500');
-
-                // الخطوة 3: رسم الكروت
-                const grid = document.getElementById('cardsGrid');
                 const users = {};
-                
                 data.forEach(item => {
-                    // تجربة كل الاحتمالات لاسم العمود
-                    const name = item.Investigator || item.investigator || item.Name || "Unknown";
-                    if (!users[name]) users[name] = 0;
-                    users[name]++;
+                    const name = item.Investigator || "Unknown";
+                    if (!users[name]) users[name] = { total: 0, weeks: {} };
+                    users[name].total++;
+                    
+                    const wk = item.SourceSheet || "Other";
+                    users[name].weeks[wk] = (users[name].weeks[wk] || 0) + 1;
                 });
 
+                grid.innerHTML = "";
                 Object.keys(users).forEach(name => {
+                    const user = users[name];
+                    let weeksHtml = Object.keys(user.weeks).map(w => 
+                        `<div class="flex justify-between text-xs border-b border-white/5 py-1">
+                            <span class="text-slate-400">${w}</span>
+                            <span class="font-bold text-blue-400">${user.weeks[w]}</span>
+                         </div>`
+                    ).join('');
+
                     grid.innerHTML += `
-                        <div class="card">
-                            <h3 class="text-xl font-bold text-blue-400">${name}</h3>
-                            <p class="text-slate-400 mt-2">Total Cases: ${users[name]}</p>
+                        <div class="card p-8">
+                            <div class="w-12 h-12 bg-blue-600 rounded-xl mb-4 flex items-center justify-center text-2xl">👤</div>
+                            <h3 class="text-xl font-bold mb-4">${name}</h3>
+                            <div class="space-y-1 mb-6">${weeksHtml}</div>
+                            <div class="pt-4 border-t border-white/10 flex justify-between">
+                                <span class="text-xs text-slate-500 uppercase font-bold">Total Cases</span>
+                                <span class="text-xl font-black text-emerald-400">${user.total}</span>
+                            </div>
                         </div>
                     `;
                 });
-
-                s3.innerText = "● Dashboard Rendered Successfully!";
-                s3.classList.add('text-green-500');
-
-            } catch (error) {
-                errDiv.innerHTML = `
-                    <div class="error-box">
-                        <h2 class="font-bold text-red-500">STOP! Critical Error Found:</h2>
-                        <p class="mt-2 text-sm">${error.message}</p>
-                        <p class="mt-4 text-xs text-slate-400 font-mono">Technical details: ${error.stack}</p>
-                    </div>
-                `;
-            }
+            } catch (e) { grid.innerHTML = "Error loading data."; }
         }
-
-        window.onload = startAnalysis;
+        load();
     </script>
 </body>
 </html>
