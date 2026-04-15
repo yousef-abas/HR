@@ -2,174 +2,90 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Investigator Hub | Youssef Abbas</title>
+    <title>Diagnostic Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Outfit', sans-serif; background: #020617; color: white; min-height: 100vh; }
-        .glass-card {
-            background: rgba(30, 41, 59, 0.4);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.3s ease;
-        }
-        .glass-card:hover {
-            transform: translateY(-5px);
-            border-color: #3b82f6;
-            background: rgba(30, 41, 59, 0.6);
-        }
-        .modal {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9);
-            z-index: 100; backdrop-filter: blur(8px); justify-content: center; align-items: center;
-        }
-        .modal.active { display: flex; }
+        body { background: #0f172a; color: white; font-family: sans-serif; }
+        .error-box { background: rgba(220, 38, 38, 0.2); border: 1px solid #dc2626; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .card { background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155; }
     </style>
 </head>
-<body class="p-6">
+<body class="p-8">
 
-    <header class="max-w-7xl mx-auto py-10 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div>
-            <h1 class="text-4xl font-black tracking-tighter">INVESTIGATOR <span class="text-blue-500">CARDS</span></h1>
-            <p class="text-slate-500 font-medium">Performance summary from Quip Cloud</p>
-        </div>
-        <div class="flex gap-4 w-full md:w-auto">
-            <input type="text" id="search" onkeyup="renderUI()" placeholder="Search by name..." 
-                   class="bg-slate-900 border border-slate-700 rounded-2xl px-6 py-3 w-full md:w-64 outline-none focus:ring-2 ring-blue-500">
-            <button onclick="window.location.reload()" class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-2xl font-bold transition-all">Sync</button>
-        </div>
-    </header>
-
-    <div id="cardsGrid" class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <div class="col-span-full text-center py-20">
-            <div class="inline-block w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p class="mt-4 text-slate-500 font-bold animate-pulse">FETCHING QUIP DATA...</p>
-        </div>
+    <h1 class="text-3xl font-bold mb-6">System <span class="text-blue-500">Check</span></h1>
+    
+    <div id="status-panel" class="mb-8 p-4 bg-slate-800 rounded-xl border border-slate-700">
+        <p id="step1" class="text-slate-500">○ Connecting to Google Cloud...</p>
+        <p id="step2" class="text-slate-500">○ Checking Data Format...</p>
+        <p id="step3" class="text-slate-500">○ Rendering Cards...</p>
     </div>
 
-    <div id="modal" class="modal p-4" onclick="closeModal()">
-        <div class="bg-slate-900 w-full max-w-4xl max-h-[85vh] rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col border border-white/5" onclick="event.stopPropagation()">
-            <div class="p-8 border-b border-white/5 flex justify-between items-center bg-slate-800/30">
-                <div>
-                    <h2 id="modalName" class="text-3xl font-black text-white">---</h2>
-                    <p id="modalStats" class="text-blue-400 text-sm font-bold uppercase mt-1 tracking-widest">---</p>
-                </div>
-                <button onclick="closeModal()" class="text-slate-500 hover:text-white text-5xl">&times;</button>
-            </div>
-            <div id="modalContent" class="p-8 overflow-y-auto space-y-8 bg-slate-900/50">
-                </div>
-        </div>
-    </div>
+    <div id="error-display"></div>
+    <div id="cardsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbyZa1tTyHrAwl_eFWqx5kfI0or275ZAWF79w3FTTcGWMrRBioXoBfPOaLSuMYxsMaWB/exec";
-        let rawData = [];
 
-        async function init() {
+        async function startAnalysis() {
+            const s1 = document.getElementById('step1');
+            const s2 = document.getElementById('step2');
+            const s3 = document.getElementById('step3');
+            const errDiv = document.getElementById('error-display');
+
             try {
+                // الخطوة 1: محاولة جلب البيانات
                 const response = await fetch(API_URL);
-                rawData = await response.json();
-                renderUI();
-            } catch (e) {
-                document.getElementById('cardsGrid').innerHTML = `<p class="col-span-full text-center text-red-500 font-bold">Error: Cloud Link Not Responding</p>`;
+                if (!response.ok) throw new Error("Google Link is Private or Offline");
+                
+                s1.innerText = "● Connected to Google Cloud! (OK)";
+                s1.classList.add('text-green-500');
+
+                const data = await response.json();
+                console.log("Raw Data:", data);
+
+                // الخطوة 2: فحص شكل البيانات
+                if (!Array.isArray(data) || data.length === 0) {
+                    throw new Error("Connected, but Sheet is EMPTY or format is wrong.");
+                }
+
+                s2.innerText = `● Data Found: ${data.length} rows detected! (OK)`;
+                s2.classList.add('text-green-500');
+
+                // الخطوة 3: رسم الكروت
+                const grid = document.getElementById('cardsGrid');
+                const users = {};
+                
+                data.forEach(item => {
+                    // تجربة كل الاحتمالات لاسم العمود
+                    const name = item.Investigator || item.investigator || item.Name || "Unknown";
+                    if (!users[name]) users[name] = 0;
+                    users[name]++;
+                });
+
+                Object.keys(users).forEach(name => {
+                    grid.innerHTML += `
+                        <div class="card">
+                            <h3 class="text-xl font-bold text-blue-400">${name}</h3>
+                            <p class="text-slate-400 mt-2">Total Cases: ${users[name]}</p>
+                        </div>
+                    `;
+                });
+
+                s3.innerText = "● Dashboard Rendered Successfully!";
+                s3.classList.add('text-green-500');
+
+            } catch (error) {
+                errDiv.innerHTML = `
+                    <div class="error-box">
+                        <h2 class="font-bold text-red-500">STOP! Critical Error Found:</h2>
+                        <p class="mt-2 text-sm">${error.message}</p>
+                        <p class="mt-4 text-xs text-slate-400 font-mono">Technical details: ${error.stack}</p>
+                    </div>
+                `;
             }
         }
 
-        function renderUI() {
-            const grid = document.getElementById('cardsGrid');
-            const search = document.getElementById('search').value.toLowerCase();
-            grid.innerHTML = "";
-
-            const users = {};
-            rawData.forEach(item => {
-                // Mapping columns from your exact JSON link
-                const name = item.Investigator || item.investigator || "Unknown";
-                if (!users[name]) users[name] = { total: 0, approved: 0 };
-                users[name].total++;
-                if (String(item.Status).toLowerCase().includes("approved")) users[name].approved++;
-            });
-
-            Object.keys(users).forEach(name => {
-                if (name.toLowerCase().includes(search)) {
-                    const data = users[name];
-                    const accuracy = ((data.approved / data.total) * 100).toFixed(1);
-
-                    grid.innerHTML += `
-                        <div class="glass-card p-8 rounded-[2rem] cursor-pointer group" onclick="openModal('${name}')">
-                            <div class="flex justify-between items-start mb-6">
-                                <div class="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform">👤</div>
-                                <div class="text-right">
-                                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Accuracy</span>
-                                    <p class="text-2xl font-black text-emerald-400">${accuracy}%</p>
-                                </div>
-                            </div>
-                            <h3 class="text-2xl font-bold text-white mb-1">${name}</h3>
-                            <p class="text-slate-500 text-sm font-bold uppercase tracking-widest mb-6 italic">Team Investigator</p>
-                            <div class="flex justify-between items-center bg-black/20 p-4 rounded-2xl border border-white/5">
-                                <div>
-                                    <span class="text-[10px] text-slate-500 block font-bold uppercase">Total Cases</span>
-                                    <span class="text-xl font-bold">${data.total}</span>
-                                </div>
-                                <div class="h-8 w-px bg-white/10"></div>
-                                <div class="text-right">
-                                    <span class="text-blue-400 font-bold text-sm group-hover:underline">View Logs &rarr;</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-            });
-        }
-
-        function openModal(name) {
-            const modal = document.getElementById('modal');
-            const content = document.getElementById('modalContent');
-            const userLogs = rawData.filter(d => (d.Investigator || d.investigator) === name);
-            
-            document.getElementById('modalName').innerText = name;
-            document.getElementById('modalStats').innerText = `${userLogs.length} Total Investigations Found`;
-
-            const weeks = {};
-            userLogs.forEach(log => {
-                const w = log.Week || log.week || "Other Weeks";
-                if (!weeks[w]) weeks[w] = [];
-                weeks[w].push(log);
-            });
-
-            let html = "";
-            Object.keys(weeks).sort().reverse().forEach(w => {
-                html += `
-                    <div>
-                        <div class="flex items-center gap-4 mb-4">
-                            <span class="text-blue-500 font-black text-xl">${w}</span>
-                            <div class="h-px bg-white/10 flex-1"></div>
-                            <span class="bg-blue-500/10 text-blue-400 px-4 py-1 rounded-full text-xs font-bold border border-blue-500/20">${weeks[w].length} Cases</span>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            ${weeks[w].map(item => `
-                                <div class="bg-slate-800/40 border border-white/5 p-5 rounded-2xl hover:border-blue-500/50 transition-all">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <p class="text-xs text-slate-500 font-bold uppercase tracking-tighter">SIM ID</p>
-                                        <span class="text-[9px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-black uppercase">${item.Status || "Done"}</span>
-                                    </div>
-                                    <p class="text-lg font-mono font-bold text-white mb-2">${item.SIM || item.sim || '---'}</p>
-                                    <div class="pt-2 border-t border-white/5">
-                                        <p class="text-[10px] text-slate-400 font-bold uppercase italic">${item['Defect type'] || 'General Defect'}</p>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            });
-
-            content.innerHTML = html;
-            modal.classList.add('active');
-        }
-
-        function closeModal() { document.getElementById('modal').classList.remove('active'); }
-
-        window.onload = init;
+        window.onload = startAnalysis;
     </script>
 </body>
 </html>
