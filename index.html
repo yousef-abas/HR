@@ -1,119 +1,132 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Investigator Performance Dashboard</title>
+    <title>تحليل أداء المحققين - التفصيلي</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { background: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; padding: 20px; }
-        .card { background: #1e293b; border-radius: 24px; border: 1px solid #334155; transition: 0.3s; height: 100%; }
-        .card:hover { border-color: #3b82f6; transform: translateY(-5px); }
-        .status-pill { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; margin-bottom: 8px; }
-        .custom-scroll::-webkit-scrollbar { width: 5px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        body { background: #0f172a; color: #e2e8f0; font-family: 'Tajawal', sans-serif; padding: 30px; }
+        .main-card { background: #1e293b; border-radius: 20px; border: 1px solid #334155; padding: 25px; margin-bottom: 30px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .stat-box { background: #0f172a; border-radius: 15px; padding: 15px; text-align: center; border: 1px solid #334155; }
+        .badge-done { background: #065f46; color: #34d399; padding: 2px 10px; border-radius: 10px; font-size: 12px; }
+        .badge-pending { background: #78350f; color: #fbbf24; padding: 2px 10px; border-radius: 10px; font-size: 12px; }
     </style>
 </head>
 <body>
 
-    <header class="text-center mb-10">
-        <h1 class="text-4xl font-black text-blue-500 italic uppercase tracking-tighter">Performance <span class="text-white">Analysis</span></h1>
-        <p class="text-slate-500 text-[10px] font-bold mt-2 uppercase tracking-[0.4em]">Real-time Quip Data Tracking</p>
-    </header>
+    <div class="max-w-6xl mx-auto">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-black text-white mb-2">التقرير التحليلي الشامل للمحققين</h1>
+            <p class="text-blue-400 font-bold uppercase tracking-widest text-sm">Investigator Detailed Performance Tracking</p>
+        </header>
 
-    <div id="grid" class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div class="col-span-full text-center py-20 animate-pulse text-slate-500 font-bold uppercase">Loading Data From Sheet...</div>
+        <div id="results-container" class="space-y-8">
+            <div class="text-center py-10">جاري سحب البيانات وتحليلها...</div>
+        </div>
     </div>
 
     <script>
-        // ضع رابط الـ Exec الجديد هنا
-        const API_URL = "https://script.google.com/macros/s/AKfycbyXdsIt6yu_5ZgmmMEH2f8gciWHbWnofFZDr8TsP-8_lwAc3SS4DsNXLIybg0H54lN6/exec";
+        const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMXOU_YEQmmXB-ZBWU7FRYntTQhOwkaNnl3vT0gWoPiVTfVMmWEh0pISAqqqbcr9YPZRbLpqTFkoUCi_s3rPvRHLRJ-OSJc_l4clepi82Y8fYyfflXNXRV7nteaDc0ltAz2rZKTMxk4nfRAyL6K_1X4z9qOMaSK3kjDApnxUhTm0e4zknxaKCnz0wfAxu2ZKRE2xXwDi0GsRPrDcJhl86EDW1rbH5rcE8I5tg33GCM9w_GyRLBhEb9tLg8SIXgteBpD_PC3acm3xGj5ooFsgxXO9gKDFmg&lib=MLOngB7wfoyw4u9ELL9R2M7dr7Hjb941e";
 
-        async function init() {
+        async function loadAnalysis() {
             try {
                 const res = await fetch(API_URL);
-                const rawData = await res.json();
-                const summary = {};
+                const data = await res.json();
+                
+                const report = {};
 
-                // تحليل الداتا الخام من الشيت
-                // إحنا عارفين إن الاسم في العمود I (رقم 8) والحالة في J (رقم 9)
-                rawData.forEach((row, index) => {
-                    if (index === 0) return; // تخطي الهيدر
-                    
-                    const name = String(row[8] || "").trim();
-                    const status = String(row[9] || "").trim();
-                    const wk = String(row[1] || "NA").trim();
+                // 1. معالجة البيانات وتحليلها
+                data.forEach((row, index) => {
+                    if (index === 0 || !row[8]) return; // تخطي الهيدر والصفوف الفاضية
 
-                    if (name && name.toLowerCase() !== "investigator" && !name.includes("http")) {
-                        if (!summary[name]) {
-                            summary[name] = { total: 0, done: 0, remain: 0, closures: {} };
-                        }
-                        
-                        summary[name].total++;
-                        
-                        const isDone = status.toLowerCase().includes("done") || 
-                                       status.toLowerCase().includes("defect") || 
-                                       status.toLowerCase().includes("wis");
+                    const name = row[8].trim();
+                    const week = row[1] ? "أسبوع " + row[1] : "غير محدد";
+                    const status = row[9] ? row[9].trim() : "Pending";
 
-                        if (isDone) {
-                            summary[name].done++;
-                            summary[name].closures[status] = (summary[name].closures[status] || 0) + 1;
-                        } else {
-                            summary[name].remain++;
-                        }
+                    if (!report[name]) {
+                        report[name] = { total: 0, done: 0, pending: 0, weeks: {}, closures: {} };
                     }
+
+                    report[name].total++;
+                    const isDone = status.toLowerCase().includes("done") || status.toLowerCase().includes("defect") || status.toLowerCase().includes("wis");
+
+                    if (isDone) {
+                        report[name].done++;
+                        report[name].closures[status] = (report[name].closures[status] || 0) + 1;
+                    } else {
+                        report[name].pending++;
+                    }
+
+                    // تحليل الأسبوع
+                    if (!report[name].weeks[week]) report[name].weeks[week] = { total: 0, done: 0 };
+                    report[name].weeks[week].total++;
+                    if (isDone) report[name].weeks[week].done++;
                 });
 
-                const grid = document.getElementById('grid');
-                grid.innerHTML = "";
+                // 2. عرض النتائج في الصفحة
+                const container = document.getElementById('results-container');
+                container.innerHTML = "";
 
-                Object.keys(summary).sort().forEach(name => {
-                    const info = summary[name];
-                    let closuresHtml = "";
+                Object.keys(report).forEach(name => {
+                    const user = report[name];
+                    
+                    let closureLines = "";
+                    Object.keys(user.closures).forEach(c => {
+                        closureLines += `<div class="flex justify-between border-b border-white/5 py-2"><span>${c}</span><span class="font-bold text-blue-400">${user.closures[c]}</span></div>`;
+                    });
 
-                    Object.keys(info.closures).forEach(type => {
-                        closuresHtml += `
-                            <div class="flex justify-between items-center text-[11px] py-1 border-b border-white/5 last:border-0">
-                                <span class="text-slate-400 font-medium">${type}</span>
-                                <span class="text-blue-400 font-black">${info.closures[type]}</span>
+                    let weekLines = "";
+                    Object.keys(user.weeks).forEach(w => {
+                        weekLines += `
+                            <div class="bg-[#0f172a] p-3 rounded-lg flex justify-between items-center border border-white/5">
+                                <span class="font-bold">${w}</span>
+                                <span class="text-sm">إجمالي: ${user.weeks[w].total} | منجز: <span class="text-emerald-400">${user.weeks[w].done}</span></span>
                             </div>`;
                     });
 
-                    grid.innerHTML += `
-                        <div class="card p-6 shadow-2xl flex flex-col">
-                            <h2 class="text-2xl font-black mb-4 text-white uppercase italic tracking-tighter border-b border-blue-500/30 pb-2">${name}</h2>
-                            
-                            <div class="grid grid-cols-2 gap-3 mb-6">
-                                <div class="bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/20 text-center">
-                                    <span class="block text-[9px] text-emerald-500 font-bold uppercase">Done</span>
-                                    <span class="text-2xl font-black text-emerald-400">${info.done}</span>
+                    container.innerHTML += `
+                        <div class="main-card">
+                            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-slate-700 pb-4">
+                                <h2 class="text-3xl font-black text-white">${name}</h2>
+                                <div class="text-sm font-bold text-slate-400 mt-2 md:mt-0">إجمالي التيكتات: <span class="text-white text-xl">${user.total}</span></div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                <div class="stat-box border-emerald-500/30">
+                                    <span class="block text-emerald-400 text-sm font-bold mb-1">تم إنجازه (Done)</span>
+                                    <span class="text-3xl font-black text-emerald-400">${user.done}</span>
                                 </div>
-                                <div class="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/20 text-center">
-                                    <span class="block text-[9px] text-amber-500 font-bold uppercase">Remaining</span>
-                                    <span class="text-2xl font-black text-amber-400">${info.remain}</span>
+                                <div class="stat-box border-amber-500/30">
+                                    <span class="block text-amber-400 text-sm font-bold mb-1">قيد العمل (Remaining)</span>
+                                    <span class="text-3xl font-black text-amber-400">${user.pending}</span>
+                                </div>
+                                <div class="stat-box border-blue-500/30">
+                                    <span class="block text-blue-400 text-sm font-bold mb-1">نسبة الإنجاز</span>
+                                    <span class="text-3xl font-black text-blue-400">${Math.round((user.done/user.total)*100)}%</span>
                                 </div>
                             </div>
 
-                            <div class="flex-grow">
-                                <p class="text-[10px] text-slate-500 font-bold mb-3 uppercase tracking-widest">Closure Analysis</p>
-                                <div class="bg-black/20 p-4 rounded-2xl custom-scroll overflow-y-auto max-h-[150px]">
-                                    ${closuresHtml || '<p class="text-[10px] text-slate-600 italic">No tickets closed yet</p>'}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div>
+                                    <h3 class="text-lg font-bold mb-4 text-slate-400 border-r-4 border-blue-500 pr-3 italic">تفاصيل أنواع القفلة</h3>
+                                    <div class="bg-black/20 p-4 rounded-xl space-y-1">${closureLines || "لا يوجد بيانات"}</div>
                                 </div>
-                            </div>
-
-                            <div class="mt-6 pt-4 border-t border-white/5 flex justify-between items-center">
-                                <span class="text-[10px] text-slate-500 font-bold uppercase">All Tickets</span>
-                                <span class="text-xl font-black text-white">${info.total}</span>
+                                <div>
+                                    <h3 class="text-lg font-bold mb-4 text-slate-400 border-r-4 border-emerald-500 pr-3 italic">الأداء الأسبوعي</h3>
+                                    <div class="space-y-2">${weekLines}</div>
+                                </div>
                             </div>
                         </div>`;
                 });
 
             } catch (e) {
-                document.getElementById('grid').innerHTML = `<div class="col-span-full text-red-500 text-center">Error: ${e.message}</div>`;
+                console.error(e);
+                document.getElementById('results-container').innerHTML = "حدث خطأ في عرض البيانات.";
             }
         }
 
-        init();
+        loadAnalysis();
     </script>
 </body>
 </html>
