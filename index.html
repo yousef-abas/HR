@@ -3,108 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team Performance Hub</title>
+    <title>Investigator Performance Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Outfit', sans-serif; background: #020617; color: white; min-height: 100vh; }
-        .investigator-card {
-            background: rgba(30, 41, 59, 0.4);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 30px;
-            transition: all 0.3s ease;
-        }
-        .investigator-card:hover {
-            transform: translateY(-8px);
-            border-color: #3b82f6;
-            background: rgba(30, 41, 59, 0.7);
-        }
+        body { background: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; padding: 20px; }
+        .card { background: #1e293b; border-radius: 24px; border: 1px solid #334155; transition: 0.3s; height: 100%; }
+        .card:hover { border-color: #3b82f6; transform: translateY(-5px); }
+        .status-pill { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; margin-bottom: 8px; }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
-<body class="p-6 md:p-12">
+<body>
 
-    <header class="max-w-6xl mx-auto mb-16 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div>
-            <h1 class="text-5xl font-black tracking-tighter italic">TEAM <span class="text-blue-500">STATS</span></h1>
-            <p class="text-slate-500 font-bold mt-2 uppercase tracking-[0.2em] text-xs text-center md:text-left">Performance Summary</p>
-        </div>
-        <button onclick="location.reload()" class="bg-blue-600 hover:bg-blue-700 px-10 py-3 rounded-2xl font-black transition-all shadow-lg shadow-blue-600/20">REFRESH DATA</button>
+    <header class="text-center mb-10">
+        <h1 class="text-4xl font-black text-blue-500 italic uppercase tracking-tighter">Performance <span class="text-white">Analysis</span></h1>
+        <p class="text-slate-500 text-[10px] font-bold mt-2 uppercase tracking-[0.4em]">Real-time Quip Data Tracking</p>
     </header>
 
-    <div id="grid" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <div class="col-span-full text-center py-20 text-slate-500 animate-pulse font-bold">LOADING TEAM DATA...</div>
+    <div id="grid" class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="col-span-full text-center py-20 animate-pulse text-slate-500 font-bold uppercase">Loading Data From Sheet...</div>
     </div>
 
     <script>
-        // الرابط الجديد اللي انت بعته وشغال تمام
-        const API_URL = "https://script.google.com/macros/s/AKfycbz4Ab-n1w8ygqA0upR-qJyd2WGFYXnqTs8PCIJ4mzvUt0NNgrj1lu-VXROB5E6cAxpc/exec";
+        // ضع رابط الـ Exec الجديد هنا
+        const API_URL = "https://script.google.com/macros/s/AKfycbyXdsIt6yu_5ZgmmMEH2f8gciWHbWnofFZDr8TsP-8_lwAc3SS4DsNXLIybg0H54lN6/exec";
 
         async function init() {
-            const grid = document.getElementById('grid');
             try {
-                const response = await fetch(API_URL);
-                const data = await response.json();
-                
-                // تجميع البيانات لكل محقق (Grouping)
+                const res = await fetch(API_URL);
+                const rawData = await res.json();
                 const summary = {};
-                data.forEach(item => {
-                    const name = item.Name;
-                    if (!summary[name]) {
-                        summary[name] = { total: 0, done: 0 };
-                    }
-                    summary[name].total++;
-                    if (item.Status.toLowerCase().includes("done")) {
-                        summary[name].done++;
-                    }
-                });
 
-                // رسم الكروت في الصفحة
-                grid.innerHTML = "";
-                Object.keys(summary).sort().forEach(name => {
-                    const stats = summary[name];
-                    const percentage = ((stats.done / stats.total) * 100).toFixed(0);
+                // تحليل الداتا الخام من الشيت
+                // إحنا عارفين إن الاسم في العمود I (رقم 8) والحالة في J (رقم 9)
+                rawData.forEach((row, index) => {
+                    if (index === 0) return; // تخطي الهيدر
                     
-                    grid.innerHTML += `
-                        <div class="investigator-card p-8 relative overflow-hidden group">
-                            <div class="mb-6 flex justify-between items-start">
-                                <div>
-                                    <h2 class="text-2xl font-black uppercase tracking-tight">${name}</h2>
-                                    <p class="text-blue-400 text-[10px] font-black uppercase tracking-widest mt-1">Investigator Profile</p>
-                                </div>
-                                <div class="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full text-[10px] font-black italic">ACTIVE</div>
-                            </div>
+                    const name = String(row[8] || "").trim();
+                    const status = String(row[9] || "").trim();
+                    const wk = String(row[1] || "NA").trim();
 
-                            <div class="grid grid-cols-2 gap-4 mb-8 text-center">
-                                <div class="bg-slate-800/50 p-4 rounded-2xl border border-white/5">
-                                    <span class="text-[10px] text-slate-500 block font-bold uppercase mb-1">Total Tasks</span>
-                                    <span class="text-2xl font-black">${stats.total}</span>
-                                </div>
-                                <div class="bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/10">
-                                    <span class="text-[10px] text-emerald-500 block font-bold uppercase mb-1">Done</span>
-                                    <span class="text-2xl font-black text-emerald-400">${stats.done}</span>
-                                </div>
-                            </div>
+                    if (name && name.toLowerCase() !== "investigator" && !name.includes("http")) {
+                        if (!summary[name]) {
+                            summary[name] = { total: 0, done: 0, remain: 0, closures: {} };
+                        }
+                        
+                        summary[name].total++;
+                        
+                        const isDone = status.toLowerCase().includes("done") || 
+                                       status.toLowerCase().includes("defect") || 
+                                       status.toLowerCase().includes("wis");
 
-                            <div class="space-y-2">
-                                <div class="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                                    <span class="text-slate-500">Progress</span>
-                                    <span class="text-blue-400">${percentage}%</span>
-                                </div>
-                                <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
-                                    <div class="bg-gradient-to-r from-blue-600 to-emerald-400 h-full rounded-full transition-all duration-1000" style="width: ${percentage}%"></div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
+                        if (isDone) {
+                            summary[name].done++;
+                            summary[name].closures[status] = (summary[name].closures[status] || 0) + 1;
+                        } else {
+                            summary[name].remain++;
+                        }
+                    }
                 });
 
-            } catch (error) {
-                grid.innerHTML = `<p class="col-span-full text-center text-red-500 font-bold">Error: Connection failed. Check your API permissions.</p>`;
+                const grid = document.getElementById('grid');
+                grid.innerHTML = "";
+
+                Object.keys(summary).sort().forEach(name => {
+                    const info = summary[name];
+                    let closuresHtml = "";
+
+                    Object.keys(info.closures).forEach(type => {
+                        closuresHtml += `
+                            <div class="flex justify-between items-center text-[11px] py-1 border-b border-white/5 last:border-0">
+                                <span class="text-slate-400 font-medium">${type}</span>
+                                <span class="text-blue-400 font-black">${info.closures[type]}</span>
+                            </div>`;
+                    });
+
+                    grid.innerHTML += `
+                        <div class="card p-6 shadow-2xl flex flex-col">
+                            <h2 class="text-2xl font-black mb-4 text-white uppercase italic tracking-tighter border-b border-blue-500/30 pb-2">${name}</h2>
+                            
+                            <div class="grid grid-cols-2 gap-3 mb-6">
+                                <div class="bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/20 text-center">
+                                    <span class="block text-[9px] text-emerald-500 font-bold uppercase">Done</span>
+                                    <span class="text-2xl font-black text-emerald-400">${info.done}</span>
+                                </div>
+                                <div class="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/20 text-center">
+                                    <span class="block text-[9px] text-amber-500 font-bold uppercase">Remaining</span>
+                                    <span class="text-2xl font-black text-amber-400">${info.remain}</span>
+                                </div>
+                            </div>
+
+                            <div class="flex-grow">
+                                <p class="text-[10px] text-slate-500 font-bold mb-3 uppercase tracking-widest">Closure Analysis</p>
+                                <div class="bg-black/20 p-4 rounded-2xl custom-scroll overflow-y-auto max-h-[150px]">
+                                    ${closuresHtml || '<p class="text-[10px] text-slate-600 italic">No tickets closed yet</p>'}
+                                </div>
+                            </div>
+
+                            <div class="mt-6 pt-4 border-t border-white/5 flex justify-between items-center">
+                                <span class="text-[10px] text-slate-500 font-bold uppercase">All Tickets</span>
+                                <span class="text-xl font-black text-white">${info.total}</span>
+                            </div>
+                        </div>`;
+                });
+
+            } catch (e) {
+                document.getElementById('grid').innerHTML = `<div class="col-span-full text-red-500 text-center">Error: ${e.message}</div>`;
             }
         }
 
-        window.onload = init;
+        init();
     </script>
 </body>
 </html>
