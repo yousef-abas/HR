@@ -3,62 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Investigator Performance | Cards</title>
+    <title>Quip Investigators | Team View</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { 
-            font-family: 'Outfit', sans-serif; 
-            background: #0f172a; 
-            color: white; 
-            min-height: 100vh;
+        body { font-family: 'Outfit', sans-serif; background: #020617; color: white; min-height: 100vh; }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .investigator-card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .investigator-card:hover {
-            transform: translateY(-5px);
+        .glass-card:hover {
+            transform: translateY(-10px) scale(1.02);
             border-color: #3b82f6;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+            background: rgba(30, 41, 59, 0.8);
         }
-        .week-tag {
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.2);
+        .modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+            z-index: 100; backdrop-filter: blur(5px); justify-content: center; align-items: center;
         }
-        #loader {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #0f172a; z-index: 50; display: flex; justify-content: center; align-items: center;
-        }
+        .modal.active { display: flex; }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-6">
 
-    <div id="loader">
-        <div class="flex flex-col items-center">
-            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p class="mt-4 text-blue-400 animate-pulse font-bold tracking-widest">LOADING DATA...</p>
-        </div>
-    </div>
-
-    <header class="max-w-7xl mx-auto mb-10 flex flex-col md:flex-row justify-between items-center gap-4">
+    <header class="max-w-7xl mx-auto py-10 flex flex-col md:flex-row justify-between items-end gap-6">
         <div>
-            <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
-                Investigator Hub
-            </h1>
-            <p class="text-slate-400 text-sm mt-1">Weekly Performance Analysis & Metrics</p>
+            <h1 class="text-5xl font-black tracking-tighter text-white">TEAM <span class="text-blue-500">INSIGHTS</span></h1>
+            <p class="text-slate-500 mt-2 font-medium">Click on any investigator to view full performance logs.</p>
         </div>
-        <div class="flex gap-3">
-             <input type="text" id="searchInput" onkeyup="renderCards()" placeholder="Search Name..." 
-             class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm outline-none focus:border-blue-500 transition-all w-64">
-             <button onclick="window.location.reload()" class="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-xl text-sm font-bold transition-all">Sync</button>
-        </div>
+        <input type="text" id="search" onkeyup="renderUI()" placeholder="Search investigator name..." 
+               class="bg-slate-900 border border-slate-700 rounded-2xl px-6 py-4 w-full md:w-80 outline-none focus:ring-2 ring-blue-500 transition-all">
     </header>
 
-    <div id="cardsContainer" class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div id="cardsGrid" class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         </div>
+
+    <div id="modal" class="modal p-4" onclick="closeModal(event)">
+        <div class="bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col" onclick="event.stopPropagation()">
+            <div class="p-8 border-b border-white/5 flex justify-between items-center bg-slate-800/50">
+                <div>
+                    <h2 id="modalName" class="text-3xl font-bold">---</h2>
+                    <p class="text-blue-400 text-sm font-bold uppercase tracking-widest mt-1">Full Investigation Logs</p>
+                </div>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white text-4xl">&times;</button>
+            </div>
+            <div id="modalContent" class="p-8 overflow-y-auto space-y-6">
+                </div>
+        </div>
+    </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbyfjiUQOnDUiTBnZpUxWRNnmCs-4OnzXhpuv6ePfgHSltMODXRJ9B5QyV71j7wJzSV8/exec";
@@ -68,96 +62,100 @@
             try {
                 const response = await fetch(API_URL);
                 rawData = await response.json();
-                renderCards();
-                document.getElementById('loader').style.display = 'none';
-            } catch (error) {
-                console.error("Error:", error);
-                alert("Failed to load data. Check URL permissions.");
-            }
+                renderUI();
+            } catch (e) { alert("Data Error! Check your script URL."); }
         }
 
-        function renderCards() {
-            const container = document.getElementById('cardsContainer');
-            const search = document.getElementById('searchInput').value.toLowerCase();
-            container.innerHTML = "";
+        function renderUI() {
+            const grid = document.getElementById('cardsGrid');
+            const search = document.getElementById('search').value.toLowerCase();
+            grid.innerHTML = "";
 
-            // 1. تجميع البيانات لكل محقق
-            const investigators = {};
-            
+            // تجميع البيانات
+            const users = {};
             rawData.forEach(item => {
-                const name = item.investigator || item.Investigator || "Unknown";
-                const week = item.week || item.Week || "Unscheduled";
-                const status = (item.status || "Done").toLowerCase();
-                
-                if (!investigators[name]) {
-                    investigators[name] = { total: 0, approved: 0, weeks: {} };
-                }
-                
-                investigators[name].total++;
-                if (status.includes("approved")) investigators[name].approved++;
-                
-                // تجميع الداتا داخل كل أسبوع للمحقق
-                if (!investigators[name].weeks[week]) {
-                    investigators[name].weeks[week] = { count: 0, approved: 0 };
-                }
-                investigators[name].weeks[week].count++;
-                if (status.includes("approved")) investigators[name].weeks[week].approved++;
+                const name = item.investigator || item.Investigator || "N/A";
+                if (!users[name]) users[name] = { total: 0, items: [] };
+                users[name].total++;
+                users[name].items.push(item);
             });
 
-            // 2. تحويل التجميع لكروت
-            Object.keys(investigators).forEach(name => {
+            // رسم الكروت
+            Object.keys(users).forEach(name => {
                 if (name.toLowerCase().includes(search)) {
-                    const data = investigators[name];
-                    const accuracy = ((data.approved / data.total) * 100).toFixed(1);
-                    
-                    let weeksHtml = "";
-                    Object.keys(data.weeks).sort().forEach(w => {
-                        const wData = data.weeks[w];
-                        weeksHtml += `
-                            <div class="week-tag p-3 rounded-xl flex justify-between items-center mb-2">
-                                <span class="text-xs font-bold text-blue-300">${w}</span>
-                                <div class="text-right">
-                                    <span class="text-[10px] block text-slate-400 uppercase">Resolved</span>
-                                    <span class="text-sm font-bold">${wData.count}</span>
+                    const data = users[name];
+                    grid.innerHTML += `
+                        <div class="glass-card p-8 rounded-[2rem] cursor-pointer relative overflow-hidden group" onclick="openModal('${name}')">
+                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
+                            <div class="flex items-center gap-4 mb-6">
+                                <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-blue-900/40">👤</div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-white">${name}</h3>
+                                    <span class="text-xs text-blue-400 font-bold uppercase tracking-tighter">Active Investigator</span>
                                 </div>
                             </div>
-                        `;
-                    });
-
-                    container.innerHTML += `
-                        <div class="investigator-card p-6 rounded-3xl">
-                            <div class="flex justify-between items-start mb-6">
-                                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center text-xl shadow-lg">
-                                    👤
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-white/5 p-4 rounded-2xl">
+                                    <span class="text-[10px] text-slate-500 block font-bold uppercase">Total Work</span>
+                                    <span class="text-2xl font-black">${data.total}</span>
                                 </div>
-                                <div class="text-right">
-                                    <span class="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Total Accuracy</span>
-                                    <h3 class="text-2xl font-black text-emerald-400">${accuracy}%</h3>
-                                </div>
-                            </div>
-                            
-                            <h2 class="text-xl font-bold mb-1 text-white">${name}</h2>
-                            <p class="text-slate-400 text-xs mb-6 uppercase tracking-widest">Investigator Profile</p>
-                            
-                            <div class="space-y-2">
-                                <p class="text-[10px] text-slate-500 uppercase font-bold mb-3">Weekly Breakdown</p>
-                                ${weeksHtml}
-                            </div>
-
-                            <div class="mt-6 pt-4 border-t border-white/5 flex justify-between">
-                                <div class="text-center">
-                                    <p class="text-[10px] text-slate-500 uppercase">Total Cases</p>
-                                    <p class="font-bold text-lg">${data.total}</p>
-                                </div>
-                                <div class="text-center">
-                                    <p class="text-[10px] text-slate-500 uppercase">Approved</p>
-                                    <p class="font-bold text-lg text-emerald-500">${data.approved}</p>
+                                <div class="bg-blue-500/10 p-4 rounded-2xl flex items-center justify-center border border-blue-500/20">
+                                    <span class="text-blue-400 font-bold text-sm tracking-tight">View Full Report &rarr;</span>
                                 </div>
                             </div>
                         </div>
                     `;
                 }
             });
+        }
+
+        function openModal(name) {
+            const modal = document.getElementById('modal');
+            const content = document.getElementById('modalContent');
+            document.getElementById('modalName').innerText = name;
+            
+            const userLogs = rawData.filter(d => (d.investigator || d.Investigator) === name);
+            
+            // تقسيم الشغل لأسابيع داخل الـ Modal
+            const weeks = {};
+            userLogs.forEach(log => {
+                const w = log.week || log.Week || "Other";
+                if (!weeks[w]) weeks[w] = [];
+                weeks[w].push(log);
+            });
+
+            let html = "";
+            Object.keys(weeks).sort().reverse().forEach(w => {
+                html += `
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-4">
+                            <h4 class="text-blue-500 font-black text-lg">${w}</h4>
+                            <div class="h-px bg-white/10 flex-1"></div>
+                            <span class="bg-slate-800 px-3 py-1 rounded-full text-xs font-bold">${weeks[w].length} Cases</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            ${weeks[w].map(item => `
+                                <div class="bg-white/5 border border-white/5 p-4 rounded-2xl flex justify-between items-center hover:bg-white/10 transition-all">
+                                    <div>
+                                        <p class="text-xs text-slate-400 font-mono">SIM ID: <span class="text-white">${item.sim || item.SIM || '---'}</span></p>
+                                        <p class="text-[10px] text-blue-300 font-bold uppercase mt-1">${item.defectType || item.defect || 'Standard'}</p>
+                                    </div>
+                                    <span class="text-[10px] px-2 py-1 rounded bg-slate-700 text-slate-300 font-black">${(item.status || "DONE").toUpperCase()}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            content.innerHTML = html;
+            modal.classList.add('active');
+        }
+
+        function closeModal() { document.getElementById('modal').classList.remove('active'); }
+        
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('modal')) closeModal();
         }
 
         window.onload = init;
