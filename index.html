@@ -1,165 +1,55 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة تحليل أداء المحققين</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <title>Debug Mode</title>
     <style>
-        body { 
-            background-color: #0f172a; 
-            color: #f1f5f9; 
-            font-family: 'Tajawal', sans-serif; 
-        }
-        .card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            transition: all 0.3s ease;
-        }
-        .card:hover {
-            transform: translateY(-5px);
-            border-color: #3b82f6;
-            box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.3);
-        }
-        .progress-bar {
-            height: 8px;
-            background: #1e293b;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #3b82f6, #60a5fa);
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-            transition: width 1s ease-in-out;
-        }
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        body { background: #000; color: #0f0; font-family: monospace; p: 20px; }
+        .error-box { color: red; border: 1px solid red; padding: 10px; margin-top: 20px; }
+        .debug-box { color: #888; background: #111; padding: 10px; margin-top: 10px; white-space: pre-wrap; }
     </style>
 </head>
-<body class="p-6 md:p-12">
-
-    <div class="max-w-6xl mx-auto">
-        <header class="mb-12 text-center">
-            <h1 class="text-4xl font-black mb-2 tracking-tighter italic">INVESTIGATOR <span class="text-blue-500">DASHBOARD</span></h1>
-            <p class="text-slate-400 font-bold text-sm tracking-widest uppercase">تحليل الأداء الفعلي - تابة WK_2:4</p>
-            <div id="loading" class="mt-4 text-blue-400 text-sm animate-pulse">جاري سحب أحدث البيانات...</div>
-        </header>
-
-        <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            </div>
-    </div>
+<body>
+    <h1>تحليل المشكلة (Debug Mode)</h1>
+    <div id="status">جاري الاتصال بالـ API...</div>
+    <div id="output"></div>
 
     <script>
-        // رابط الـ Exec بتاعك
         const API_URL = "https://script.google.com/macros/s/AKfycbwTnwnOyPfMy6lvpAErqTtM0lal2d3T-OhYRzkpobq3uc8aqB3dkaRyKqqCVxJr-Skd/exec";
 
-        async function init() {
+        async function testFetch() {
+            const status = document.getElementById('status');
+            const output = document.getElementById('output');
+
             try {
                 const response = await fetch(API_URL);
-                const data = await response.json();
                 
-                const report = {};
+                // هنا هنشوف الـ Response راجع إيه بالظبط قبل ما نحوله لـ JSON
+                const textData = await response.text();
+                
+                output.innerHTML += "<h3>المعلومات الخام المستلمة:</h3>";
+                output.innerHTML += `<div class="debug-box">${textData.substring(0, 500)}</div>`;
 
-                // تحليل البيانات
-                data.forEach((row, index) => {
-                    // نتجاهل الهيدر (أول صف) والصفوف اللي مفيهاش اسم محقق في العمود I (رقم 8)
-                    if (index === 0 || !row[8] || row[8].toLowerCase() === "investigator") return;
-
-                    const name = row[8].trim();
-                    const status = row[9] ? row[9].trim() : "Pending";
-
-                    if (!report[name]) {
-                        report[name] = { total: 0, done: 0, pending: 0, closures: {} };
-                    }
-
-                    report[name].total++;
-
-                    // منطق تحديد الحالة "تم" (بناءً على الكلمات المعتادة في Quip)
-                    const s = status.toLowerCase();
-                    const isDone = s.includes("done") || s.includes("defect") || s.includes("wis");
-
-                    if (isDone) {
-                        report[name].done++;
-                        // تسجيل نوع القفلة بالتفصيل
-                        report[name].closures[status] = (report[name].closures[status] || 0) + 1;
+                // محاولة تحويل النص لـ JSON
+                try {
+                    const jsonData = JSON.parse(textData);
+                    if (Array.isArray(jsonData)) {
+                        status.innerHTML = "✅ تم استلام مصفوفة بيانات بنجاح!";
+                        status.style.color = "lime";
                     } else {
-                        report[name].pending++;
+                        status.innerHTML = "⚠️ المستلم ليس مصفوفة (Array)!";
                     }
-                });
+                } catch (e) {
+                    status.innerHTML = "❌ فشل تحويل البيانات لـ JSON (البيانات ليست نص برمجي)";
+                }
 
-                render(report);
-                document.getElementById('loading').classList.add('hidden');
-
-            } catch (error) {
-                console.error(error);
-                document.getElementById('loading').innerText = "خطأ في الاتصال بالبيانات!";
+            } catch (err) {
+                status.innerHTML = "❌ خطأ في الاتصال (CORS أو اللينك غلط)";
+                output.innerHTML += `<div class="error-box">${err.message}</div>`;
             }
         }
 
-        function render(report) {
-            const grid = document.getElementById('grid');
-            grid.innerHTML = "";
-
-            Object.keys(report).sort().forEach(name => {
-                const user = report[name];
-                const rate = Math.round((user.done / user.total) * 100) || 0;
-
-                // تحويل أنواع القفلات لشكل جمالي
-                let closureHtml = "";
-                for (const [type, count] of Object.entries(user.closures)) {
-                    closureHtml += `
-                        <div class="flex justify-between items-center py-1 border-b border-white/5 text-[11px]">
-                            <span class="text-slate-400">${type}</span>
-                            <span class="text-blue-400 font-bold">${count}</span>
-                        </div>`;
-                }
-
-                grid.innerHTML += `
-                    <div class="card p-8 flex flex-col h-full">
-                        <div class="flex justify-between items-start mb-6">
-                            <h2 class="text-2xl font-black text-white italic tracking-tighter">${name}</h2>
-                            <div class="bg-blue-500/10 text-blue-500 text-[10px] font-bold px-3 py-1 rounded-full border border-blue-500/20">
-                                ${user.total} TOTAL
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 mb-6">
-                            <div class="text-center p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
-                                <p class="text-[9px] text-emerald-500 font-bold uppercase">Done</p>
-                                <p class="text-2xl font-black text-emerald-400">${user.done}</p>
-                            </div>
-                            <div class="text-center p-3 rounded-2xl bg-amber-500/5 border border-amber-500/10">
-                                <p class="text-[9px] text-amber-500 font-bold uppercase">Pending</p>
-                                <p class="text-2xl font-black text-amber-400">${user.pending}</p>
-                            </div>
-                        </div>
-
-                        <div class="flex-grow mb-6">
-                            <p class="text-[10px] text-slate-500 font-bold mb-3 uppercase tracking-widest border-r-2 border-blue-500 pr-2">Closure Breakdown</p>
-                            <div class="max-h-[100px] overflow-y-auto pr-2 custom-scroll">
-                                ${closureHtml || '<p class="text-[10px] text-slate-600 italic">No tickets closed yet</p>'}
-                            </div>
-                        </div>
-
-                        <div class="mt-auto">
-                            <div class="flex justify-between text-[10px] font-bold mb-2 uppercase">
-                                <span class="text-slate-500 italic">Achievement</span>
-                                <span class="text-blue-400">${rate}%</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${rate}%"></div>
-                            </div>
-                        </div>
-                    </div>`;
-            });
-        }
-
-        // تشغيل
-        init();
+        testFetch();
     </script>
 </body>
 </html>
