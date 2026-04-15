@@ -1,126 +1,166 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Investigator Insights | Developed by Youssef Abbas</title>
+    <title>Investigator Performance | Cards</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Outfit', sans-serif; background-color: #020617; min-height: 100vh; color: #f8fafc; overflow-x: hidden; }
-        #intro-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #0f172a; z-index: 1000; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; transition: opacity 0.8s ease;
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            background: #0f172a; 
+            color: white; 
+            min-height: 100vh;
         }
-        .intro-ball { width: 100px; height: 100px; background: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 3rem; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); } 70% { transform: scale(1.1); box-shadow: 0 0 0 20px rgba(59, 130, 246, 0); } 100% { transform: scale(1); } }
-        .fade-out { opacity: 0 !important; pointer-events: none; }
-        .card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); }
-        #main-content { opacity: 0; transition: opacity 1s ease; }
-        .visible { opacity: 1 !important; }
+        .investigator-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .investigator-card:hover {
+            transform: translateY(-5px);
+            border-color: #3b82f6;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+        .week-tag {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0f172a; z-index: 50; display: flex; justify-content: center; align-items: center;
+        }
     </style>
 </head>
-<body>
+<body class="p-4 md:p-8">
 
-    <div id="intro-screen">
-        <div class="intro-ball">🔍</div>
-        <h1 class="text-white text-2xl font-bold mt-6">Investigator Performance</h1>
-        <p id="loader-status" class="text-blue-400 mt-2 text-sm font-mono">Connecting to Cloud...</p>
-    </div>
-
-    <div id="main-content" class="p-6">
-        <header class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-bold text-white">Investigator Pro</h1>
-                <p class="text-slate-400 text-sm">Real-time Performance Metrics</p>
-            </div>
-            <button onclick="window.location.reload()" class="bg-blue-600 px-6 py-2 rounded-xl font-bold">Refresh Data</button>
-        </header>
-
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div class="card"><p class="text-xs text-slate-400 uppercase font-bold">Total Cases</p><p id="totalTickets" class="text-3xl font-bold text-white">0</p></div>
-            <div class="card"><p class="text-xs text-slate-400 uppercase font-bold">Approved</p><p id="approvedCount" class="text-3xl font-bold text-emerald-400">0</p></div>
-            <div class="card"><p class="text-xs text-slate-400 uppercase font-bold">Accuracy</p><p id="accuracy" class="text-3xl font-bold text-blue-400">0%</p></div>
-            <div class="card"><p class="text-xs text-slate-400 uppercase font-bold">GSAB</p><p id="gsabCount" class="text-3xl font-bold text-amber-400">0</p></div>
-        </div>
-
-        <div class="card overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-800 text-slate-300">
-                        <tr>
-                            <th class="p-4">Investigator</th>
-                            <th class="p-4">SIM ID</th>
-                            <th class="p-4">Defect</th>
-                            <th class="p-4">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logTableBody" class="divide-y divide-slate-700"></tbody>
-                </table>
-            </div>
+    <div id="loader">
+        <div class="flex flex-col items-center">
+            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p class="mt-4 text-blue-400 animate-pulse font-bold tracking-widest">LOADING DATA...</p>
         </div>
     </div>
+
+    <header class="max-w-7xl mx-auto mb-10 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div>
+            <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+                Investigator Hub
+            </h1>
+            <p class="text-slate-400 text-sm mt-1">Weekly Performance Analysis & Metrics</p>
+        </div>
+        <div class="flex gap-3">
+             <input type="text" id="searchInput" onkeyup="renderCards()" placeholder="Search Name..." 
+             class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm outline-none focus:border-blue-500 transition-all w-64">
+             <button onclick="window.location.reload()" class="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-xl text-sm font-bold transition-all">Sync</button>
+        </div>
+    </header>
+
+    <div id="cardsContainer" class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbyfjiUQOnDUiTBnZpUxWRNnmCs-4OnzXhpuv6ePfgHSltMODXRJ9B5QyV71j7wJzSV8/exec";
+        let rawData = [];
 
-        async function fetchData() {
-            const statusText = document.getElementById('loader-status');
+        async function init() {
             try {
                 const response = await fetch(API_URL);
-                if (!response.ok) throw new Error("Network response was not ok");
-                
-                const data = await response.json();
-                statusText.innerText = "Data Received! Processing...";
-                
-                renderData(data);
-                showDashboard();
+                rawData = await response.json();
+                renderCards();
+                document.getElementById('loader').style.display = 'none';
             } catch (error) {
-                console.error("Fetch error:", error);
-                statusText.innerText = "Error: Check URL permissions or Sheet headers.";
-                // برضه هنفتح الداشبورد عشان ميفضلش معلق بس هتبقى فاضية
-                setTimeout(showDashboard, 2000);
+                console.error("Error:", error);
+                alert("Failed to load data. Check URL permissions.");
             }
         }
 
-        function renderData(data) {
-            const tbody = document.getElementById('logTableBody');
-            const totalItems = data.length;
-            let approved = 0;
-            let gsab = 0;
+        function renderCards() {
+            const container = document.getElementById('cardsContainer');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            container.innerHTML = "";
 
-            tbody.innerHTML = data.slice(0, 100).map(item => {
-                // محاولة قراءة الأسماء بأي شكل (Case Sensitive check)
-                const inv = item.investigator || item.Investigator || "N/A";
-                const sim = item.sim || item.SIM || item["SIM ID"] || "---";
-                const status = item.status || item.Status || "Done";
-                const defect = item.defectType || item.defect || "N/A";
+            // 1. تجميع البيانات لكل محقق
+            const investigators = {};
+            
+            rawData.forEach(item => {
+                const name = item.investigator || item.Investigator || "Unknown";
+                const week = item.week || item.Week || "Unscheduled";
+                const status = (item.status || "Done").toLowerCase();
+                
+                if (!investigators[name]) {
+                    investigators[name] = { total: 0, approved: 0, weeks: {} };
+                }
+                
+                investigators[name].total++;
+                if (status.includes("approved")) investigators[name].approved++;
+                
+                // تجميع الداتا داخل كل أسبوع للمحقق
+                if (!investigators[name].weeks[week]) {
+                    investigators[name].weeks[week] = { count: 0, approved: 0 };
+                }
+                investigators[name].weeks[week].count++;
+                if (status.includes("approved")) investigators[name].weeks[week].approved++;
+            });
 
-                if (status.toLowerCase().includes('approved')) approved++;
-                if (defect.toLowerCase().includes('gsab')) gsab++;
+            // 2. تحويل التجميع لكروت
+            Object.keys(investigators).forEach(name => {
+                if (name.toLowerCase().includes(search)) {
+                    const data = investigators[name];
+                    const accuracy = ((data.approved / data.total) * 100).toFixed(1);
+                    
+                    let weeksHtml = "";
+                    Object.keys(data.weeks).sort().forEach(w => {
+                        const wData = data.weeks[w];
+                        weeksHtml += `
+                            <div class="week-tag p-3 rounded-xl flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold text-blue-300">${w}</span>
+                                <div class="text-right">
+                                    <span class="text-[10px] block text-slate-400 uppercase">Resolved</span>
+                                    <span class="text-sm font-bold">${wData.count}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
 
-                return `<tr>
-                    <td class="p-4 font-bold text-white">${inv}</td>
-                    <td class="p-4 text-blue-400 font-mono">${sim}</td>
-                    <td class="p-4 text-slate-300">${defect}</td>
-                    <td class="p-4"><span class="px-2 py-1 rounded-lg text-xs font-bold ${status.toLowerCase().includes('approved') ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-300'}">${status}</span></td>
-                </tr>`;
-            }).join('');
+                    container.innerHTML += `
+                        <div class="investigator-card p-6 rounded-3xl">
+                            <div class="flex justify-between items-start mb-6">
+                                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center text-xl shadow-lg">
+                                    👤
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Total Accuracy</span>
+                                    <h3 class="text-2xl font-black text-emerald-400">${accuracy}%</h3>
+                                </div>
+                            </div>
+                            
+                            <h2 class="text-xl font-bold mb-1 text-white">${name}</h2>
+                            <p class="text-slate-400 text-xs mb-6 uppercase tracking-widest">Investigator Profile</p>
+                            
+                            <div class="space-y-2">
+                                <p class="text-[10px] text-slate-500 uppercase font-bold mb-3">Weekly Breakdown</p>
+                                ${weeksHtml}
+                            </div>
 
-            document.getElementById('totalTickets').innerText = totalItems;
-            document.getElementById('approvedCount').innerText = approved;
-            document.getElementById('gsabCount').innerText = gsab;
-            document.getElementById('accuracy').innerText = ((approved / totalItems) * 100 || 0).toFixed(1) + '%';
+                            <div class="mt-6 pt-4 border-t border-white/5 flex justify-between">
+                                <div class="text-center">
+                                    <p class="text-[10px] text-slate-500 uppercase">Total Cases</p>
+                                    <p class="font-bold text-lg">${data.total}</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-[10px] text-slate-500 uppercase">Approved</p>
+                                    <p class="font-bold text-lg text-emerald-500">${data.approved}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
         }
 
-        function showDashboard() {
-            document.getElementById('intro-screen').classList.add('fade-out');
-            document.getElementById('main-content').classList.add('visible');
-        }
-
-        window.onload = fetchData;
+        window.onload = init;
     </script>
 </body>
 </html>
