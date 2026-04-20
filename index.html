@@ -3,75 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة أداء المحققين - WK_2:4</title>
+    <title>Investigator Dashboard | WK_2:5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { 
-            background-color: #0f172a; 
-            color: #f1f5f9; 
-            font-family: 'Tajawal', sans-serif; 
-        }
+        body { background-color: #0f172a; color: #f1f5f9; font-family: 'Tajawal', sans-serif; }
         .card-glass {
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 28px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 24px;
+            transition: all 0.3s ease;
         }
-        .card-glass:hover {
-            transform: translateY(-8px);
-            border-color: #3b82f6;
-            box-shadow: 0 20px 40px -15px rgba(59, 130, 246, 0.2);
-        }
-        .progress-container { height: 8px; background: #1e293b; border-radius: 10px; overflow: hidden; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #60a5fa); transition: width 1s ease-in-out; }
+        .card-glass:hover { transform: translateY(-5px); border-color: #3b82f6; }
+        .progress-bar { height: 8px; background: #1e293b; border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #60a5fa); transition: width 1s ease; }
     </style>
 </head>
-<body class="p-6 md:p-12 min-h-screen">
+<body class="p-6">
 
     <div class="max-w-6xl mx-auto">
-        <header class="mb-16 text-center">
-            <h1 class="text-5xl font-black mb-3 tracking-tighter italic uppercase text-white">
-                Investigator <span class="text-blue-500">Dashboard</span>
-            </h1>
-            <div id="status-tag" class="inline-block px-4 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full">
-                <p class="text-blue-400 font-bold text-xs tracking-widest uppercase">Live Tracking • WK_2:4</p>
-            </div>
-            <div id="loading-spinner" class="mt-8 flex flex-col items-center">
-                <div class="w-10 h-10 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
-                <p class="mt-4 text-slate-500 text-sm">جاري تحليل البيانات المستلمة...</p>
+        <header class="mb-12 text-center">
+            <h1 class="text-4xl font-black mb-2 text-white italic">INVESTIGATOR <span class="text-blue-500">PERFORMANCE</span></h1>
+            <p class="text-slate-400 text-sm tracking-widest uppercase">Week Tracking: WK_2:5</p>
+            <div id="loader" class="mt-10">
+                <div class="inline-block w-8 h-8 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
             </div>
         </header>
 
-        <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+        <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </div>
 
     <script>
-        // رابط الـ API بتاعك اللي شغال
+        // رابط الـ API الجديد بتاعك
         const API_URL = "https://script.google.com/macros/s/AKfycbx0gCwKzLfXiUdYzC_kT9LAeSGugwgS4JsRvVdl4YgVk4g8Azj3wpj-Nwqjp1pbEUnP/exec";
 
-        async function fetchData() {
+        async function init() {
             try {
                 const response = await fetch(API_URL);
                 const result = await response.json();
-
-                // الدخول لعمق البيانات (بناءً على الـ JSON بتاعك)
-                const tableData = result.data; 
-
-                if (!tableData || !Array.isArray(tableData)) {
-                    throw new Error("تنسيق البيانات غير صحيح");
-                }
+                
+                // الدخول لعمود البيانات
+                const rows = result.data || result; 
 
                 const stats = {};
 
-                // التحليل (تخطي أول صفين هيدر)
-                tableData.forEach((row, index) => {
-                    // العمود 8 هو المحقق (Investigator)
-                    if (index < 2 || !row[8] || row[8].toString().toLowerCase().includes("investigator")) return;
+                rows.forEach((row, index) => {
+                    // تخطي أول صفين (الهيدر والأسماء)
+                    if (index < 2) return;
 
-                    const name = row[8].toString().trim();
+                    // العمود I (رقم 8) هو Investigator
+                    // العمود J (رقم 9) هو Statues
+                    const name = row[8] ? row[8].toString().trim() : "";
                     const status = row[9] ? row[9].toString().trim().toLowerCase() : "";
+
+                    if (!name || name === "" || name.toLowerCase() === "investigator") return;
 
                     if (!stats[name]) {
                         stats[name] = { total: 0, done: 0, pending: 0 };
@@ -79,10 +65,10 @@
 
                     stats[name].total++;
 
-                    // فحص الحالة
+                    // منطق الحالات اللي بتتحسب Done
                     const isDone = status.includes("done") || 
-                                   status.includes("wis") || 
                                    status.includes("defect") || 
+                                   status.includes("wis") || 
                                    status.includes("no defect");
 
                     if (isDone) {
@@ -92,53 +78,46 @@
                     }
                 });
 
-                renderCards(stats);
-                document.getElementById('loading-spinner').style.display = 'none';
+                render(stats);
+                document.getElementById('loader').style.display = 'none';
 
-            } catch (error) {
-                console.error("Error:", error);
-                document.getElementById('loading-spinner').innerHTML = `
-                    <p class="text-red-500 font-bold">❌ فشل في عرض البيانات</p>
-                    <p class="text-slate-600 text-xs">${error.message}</p>
-                `;
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loader').innerHTML = `<p class="text-red-400">خطأ في تحميل البيانات</p>`;
             }
         }
 
-        function renderCards(stats) {
+        function render(stats) {
             const grid = document.getElementById('grid');
             grid.innerHTML = "";
 
-            // ترتيب الأسماء أبجدياً
-            const sortedNames = Object.keys(stats).sort();
-
-            sortedNames.forEach(name => {
+            Object.keys(stats).sort().forEach(name => {
                 const p = stats[name];
                 const percent = Math.round((p.done / p.total) * 100) || 0;
 
                 grid.innerHTML += `
-                    <div class="card-glass p-8 flex flex-col">
-                        <div class="flex justify-between items-start mb-6">
-                            <h2 class="text-2xl font-black text-white italic tracking-tighter leading-none">${name}</h2>
-                            <span class="text-[10px] font-bold px-2 py-1 bg-white/5 rounded text-slate-400 tracking-widest">${p.total} TIK</span>
+                    <div class="card-glass p-6">
+                        <h2 class="text-xl font-bold text-white mb-4 truncate">${name}</h2>
+                        <div class="flex justify-between mb-4">
+                            <div class="text-center">
+                                <p class="text-[10px] text-slate-500 uppercase">Total</p>
+                                <p class="text-lg font-bold">${p.total}</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-[10px] text-emerald-500 uppercase">Done</p>
+                                <p class="text-lg font-bold text-emerald-400">${p.done}</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-[10px] text-amber-500 uppercase">Pending</p>
+                                <p class="text-lg font-bold text-amber-400">${p.pending}</p>
+                            </div>
                         </div>
-
-                        <div class="grid grid-cols-2 gap-4 mb-8">
-                            <div class="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl text-center">
-                                <p class="text-[10px] text-emerald-500 font-black uppercase mb-1">Done</p>
-                                <p class="text-3xl font-black text-emerald-400">${p.done}</p>
+                        <div class="mt-4">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-400">Progress</span>
+                                <span class="text-blue-400 font-bold">${percent}%</span>
                             </div>
-                            <div class="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl text-center">
-                                <p class="text-[10px] text-amber-500 font-black uppercase mb-1">Pending</p>
-                                <p class="text-3xl font-black text-amber-400">${p.pending}</p>
-                            </div>
-                        </div>
-
-                        <div class="mt-auto">
-                            <div class="flex justify-between text-[11px] font-black uppercase mb-2 tracking-tighter">
-                                <span class="text-slate-500">Achievement Rate</span>
-                                <span class="text-blue-400">${percent}%</span>
-                            </div>
-                            <div class="progress-container">
+                            <div class="progress-bar">
                                 <div class="progress-fill" style="width: ${percent}%"></div>
                             </div>
                         </div>
@@ -147,7 +126,7 @@
             });
         }
 
-        fetchData();
+        init();
     </script>
 </body>
 </html>
